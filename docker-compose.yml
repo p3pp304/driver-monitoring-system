@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Il "cervello" in Python (FastAPI) 
+  backend:
+    build: ./backend
+    container_name: dms_fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # L'interfaccia utente in React 
+  frontend:
+    build: ./frontend
+    container_name: dms_react
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - WDS_SOCKET_PORT=0
+      - CHOKIDAR_USEPOLLING=true
