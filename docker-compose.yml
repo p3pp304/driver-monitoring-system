@@ -17,10 +17,12 @@ services:
     build: ./frontend
     container_name: dms_react
     ports:
-      - "3000:3000"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    depends_on:
+      - backend
     environment:
       - WDS_SOCKET_PORT=0
       - CHOKIDAR_USEPOLLING=true
