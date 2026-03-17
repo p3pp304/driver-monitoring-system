@@ -63,11 +63,10 @@ async def websocket_endpoint(websocket: WebSocket):
     # Fase di Handshake: il server accetta la connessione permanente
     await websocket.accept()
     print("Connessione WebSocket stabilita. Monitoraggio conducente attivo.")
-
-    # Accende la webcam (device 0 mappato da Docker)
-    cap = cv2.VideoCapture(0)
     
     try:
+         # Inizializza la webcam (0 = webcam predefinita)
+        cap = cv2.VideoCapture(0)
         # Loop infinito di monitoraggio (Stateful)
         while True:
             while cap.isOpened():

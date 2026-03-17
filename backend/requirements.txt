@@ -1,6 +1,6 @@
 fastapi
 uvicorn
 websockets
-mediapipe
+mediapipe==0.10.14
 ultralytics
 opencv-python
