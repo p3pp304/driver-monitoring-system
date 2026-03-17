@@ -46,7 +46,6 @@ X_SLEEP_THRESHOLD = 1.5
 @app.get("/")
 async def health_check():
     """
-    Rotta diagnostica (Capitolo 5).
     Verifica che il container sia online e restituisce la soglia x corrente.
     """
     return {
@@ -59,28 +58,47 @@ async def health_check():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
-    Core del monitoraggio in tempo reale
-    Gestisce la connessione persistente per lo streaming dei dati biometrici.
+    Core del monitoraggio in tempo reale con MediaPipe
     """
     # Fase di Handshake: il server accetta la connessione permanente
     await websocket.accept()
     print("Connessione WebSocket stabilita. Monitoraggio conducente attivo.")
+
+    # Accende la webcam (device 0 mappato da Docker)
+    cap = cv2.VideoCapture(0)
     
     try:
         # Loop infinito di monitoraggio (Stateful)
         while True:
-            # Ricezione dei dati dal Frontend (es. coordinate occhi da MediaPipe)
-            # await non blocca il server mentre aspetta i dati
-            data = await websocket.receive_text()
-            
-            # --- LOGICA DI ELABORAZIONE ---
-            # Qui integreremo l'analisi dei landmark e il calcolo della variabile x
-            
-            # Risposta immediata al frontend per confermare la bassa latenza
-            await websocket.send_text(f"Dati ricevuti. Analisi in corso con soglia x: {X_SLEEP_THRESHOLD}s")
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success: 
+                    print("Impossibile leggere dalla webcam")
+                    break
+
+                # --- LOGICA DI ELABORAZIONE MEDIAPIPE ---
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR -> RGB per MediaPipe
+                results = face_mesh.process(rgb_frame)
+
+                if results.multi_face_landmarks: # Se non viene rilevato un volto, allora non facciamo None
+                    mesh = results.multi_face_landmarks[0].landmark # 0 perché consideriamo solo il primo volto rilevato (conducente)
+                    ear = (calculate_ear(mesh, LEFT_EYE) + calculate_ear(mesh, RIGHT_EYE)) / 2.0
+                    
+                    # STAMPA NEL TERMINALE E INVIO DATI AL FRONTEND
+                    if ear < 0.2:
+                        print(f"[{round(ear, 2)}] ⚠️ OCCHI CHIUSI!")
+                        # Invia "1" al frontend per indicare pericolo
+                        await websocket.send_text("1") 
+                    else:
+                        print(f"[{round(ear, 2)}] 👀 OCCHI APERTI")
+                        # Invia "0" al frontend per indicare sicurezza
+                        await websocket.send_text("0")
             
     except WebSocketDisconnect:
-        # Gestione della disconnessione (fine del viaggio o chiusura app)
-        print("Conducente disconnesso. Sessione di monitoraggio terminata.")
+
+            print("Conducente disconnesso. Sessione di monitoraggio terminata.")
     except Exception as e:
         print(f"Errore critico durante lo streaming: {e}")
+    finally:
+        # Rilascia la webcam quando si chiude la connessione (fondamentale per non bloccare la telecamera!)
+        cap.release()
