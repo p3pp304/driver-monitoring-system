@@ -3,3 +3,4 @@ uvicorn
 websockets
 mediapipe
 ultralytics
+opencv-python
