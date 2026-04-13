@@ -65,8 +65,9 @@ async def websocket_endpoint(websocket: WebSocket):
     print("Connessione WebSocket stabilita. Monitoraggio conducente attivo.")
     
     try:
-         # Inizializza la webcam (0 = webcam predefinita)
-        cap = cv2.VideoCapture(0)
+        # Sostituisci questo URL con l'indirizzo esatto che vedi sul telefono
+        URL_TELEFONO = "http://192.168.1.201:8080"  
+        cap = cv2.VideoCapture(URL_TELEFONO)
         # Loop infinito di monitoraggio (Stateful)
         while True:
             while cap.isOpened():
