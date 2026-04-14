@@ -10,6 +10,7 @@ import { Camera } from '@mediapipe/camera_utils';
 const LEFT_EYE = [362, 385, 387, 263, 373, 390]
 const RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 const EAR_THRESHOLD = 0.2  //Soglia empirica sotto la quale l'occhio è considerato chiuso
+const X_SLEEP_THRESHOLD = 1.5; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
 
 function calculate_ear(landmarks, eye_indices) {
     /*Calcola l'Eye Aspect Ratio (EAR).
@@ -31,11 +32,10 @@ function calculate_ear(landmarks, eye_indices) {
     return (v1 + v2) / (2.0 * h)
 }
 
-/* --- CONFIGURAZIONE LOGICA PROATTIVA ---
-# Variabile x: Soglia critica di chiusura occhi (espressa in secondi)
-# Se il tempo di chiusura occhi > X_SLEEP_THRESHOLD -> Intervento Proattivo*/
-const X_SLEEP_THRESHOLD = 1.5;  // Soglia empirica di chiusura occhi in secondi
-
+const playAlertBeep = () => {
+    const audio = new Audio('/beep.mp3');
+    audio.play();
+};
 
 function App() {
   const [status, setStatus] = useState("Connessione in corso...");
