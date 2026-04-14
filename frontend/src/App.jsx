@@ -73,7 +73,63 @@ export default function App() {
     return () => wsRef.current.close();
   }, []);
 
-  //CONTINUARE DA QUI PROSSIMA VOLTA
+  // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
+  useEffect(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const canvasCtx = canvasRef.current.getContext('2d');
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });
+
+    faceMesh.onResults((results) => {
+      // Disegna la webcam
+      canvasCtx.clearRect(0, 0, 640, 480);
+      canvasCtx.drawImage(results.image, 0, 0, 640, 480);
+      
+      if (results.multiFaceLandmarks?.[0]) {
+        const landmarks = results.multiFaceLandmarks[0];
+        const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
+
+        if (ear < EAR_THRESHOLD) {
+          if (!closedStartTimeRef.current) closedStartTimeRef.current = performance.now();
+          
+          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;
+          setVariableX(timeClosed.toFixed(2));
+          setIsSleeping(true);
+
+          // Allarme
+          if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 5000)) {
+            
+            // Suona il file MP3 in modo semplicissimo!
+            new Audio('/beep.mp3').play(); 
+            
+            // Invia dati al server
+            wsRef.current?.send(JSON.stringify({
+              event: "DROWSINESS_DETECTED",
+              variable_x: timeClosed.toFixed(2)
+            }));
+            lastAlarmTimeRef.current = performance.now();
+          }
+        } else {
+          // Azzera tutto se apre gli occhi
+          closedStartTimeRef.current = null;
+          setVariableX(0);
+          setIsSleeping(false);
+        }
+      }
+    });
+
+    // Avvia Webcam
+    const camera = new Camera(videoRef.current, {
+      onFrame: async () => await faceMesh.send({ image: videoRef.current }),
+      width: 640, height: 480
+    });
+    camera.start();
+  }, []);
+
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       
