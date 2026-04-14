@@ -1,12 +1,9 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import cv2
-import mediapipe as mp
-import time
+import json
+from datetime import datetime
 
 # Inizializzazione dell'applicazione FastAPI
-app = FastAPI()
-
-
+app = FastAPI()                                                        
 
 @app.get("/")
 async def health_check():
@@ -15,55 +12,62 @@ async def health_check():
     """
     return {
         "status": "DMS Backend Online",
-        "version": "1.0.0",
-        "active_threshold_x": f"{X_SLEEP_THRESHOLD}s",
+        "version": "2.0.0",
+        "architecture": "Edge-Computing (V2N)",
         "framework": "FastAPI (Asynchronous)"
     }
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
-    Core del monitoraggio in tempo reale con MediaPipe
+    Core del sistema proattivo. Riceve la telemetria dal nodo frontend (React)
+    e innesca i moduli di assistenza (Voice & Maps).
     """
     # Fase di Handshake: il server accetta la connessione permanente
     await websocket.accept()
-    print("Connessione WebSocket stabilita. Monitoraggio conducente attivo.")
+    print("✅ Connessione WebSocket stabilita. In attesa di telemetria...")
     
     try:
-        # Sostituisci questo URL con l'indirizzo esatto che vedi sul telefono
-        URL_TELEFONO = "http://192.168.1.201:8080"  
-        cap = cv2.VideoCapture(URL_TELEFONO)
-        # Loop infinito di monitoraggio (Stateful)
+        # Loop infinito: il server "ascolta" in silenzio senza consumare CPU
         while True:
-            while cap.isOpened():
-                success, frame = cap.read()
-                if not success: 
-                    print("Impossibile leggere dalla webcam")
-                    break
-
-                # --- LOGICA DI ELABORAZIONE MEDIAPIPE ---
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR -> RGB per MediaPipe
-                results = face_mesh.process(rgb_frame)
-
-                if results.multi_face_landmarks: # Se non viene rilevato un volto, allora non facciamo None
-                    mesh = results.multi_face_landmarks[0].landmark # 0 perché consideriamo solo il primo volto rilevato (conducente)
-                    ear = (calculate_ear(mesh, LEFT_EYE) + calculate_ear(mesh, RIGHT_EYE)) / 2.0
-                    
-                    # STAMPA NEL TERMINALE E INVIO DATI AL FRONTEND
-                    if ear < 0.2:
-                        print(f"[{round(ear, 2)}] ⚠️ OCCHI CHIUSI!")
-                        # Invia "1" al frontend per indicare pericolo
-                        await websocket.send_text("1") 
-                    else:
-                        print(f"[{round(ear, 2)}] 👀 OCCHI APERTI")
-                        # Invia "0" al frontend per indicare sicurezza
-                        await websocket.send_text("0")
+            # 1. Ricezione dell'allarme dal Frontend
+            data = await websocket.receive_text()
+            payload = json.loads(data)
             
-    except WebSocketDisconnect:
+            # 2. Controllo dell'evento ricevuto
+            if payload.get("event") == "DROWSINESS_DETECTED":
+                var_x = payload.get("variable_x")
+                print(f"🚨 ALLARME RICEVUTO! Il conducente ha chiuso gli occhi per {var_x} secondi.")
+                
+                # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
+                # (Qui in futuro integreremo le vere API di Gemini e Google Maps)
+                # Per ora simuliamo la loro risposta intelligente:
+                
+                ai_response = f"Attenzione, ho rilevato un colpo di sonno di {var_x} secondi. Ti consiglio vivamente di fermarti. Ho impostato il navigatore per l'area di sosta più vicina."
+                
+                maps_suggestion = {
+                    "name": "Area di Sosta 'La Macchia' (A14)",
+                    "distance": "3", # minuti di deviazione
+                    "lat": 41.1234,
+                    "lng": 16.5678
+                }
+                
+                penalty_points = 5 # Punti da sottrarre al Safety Score
+                
+                # 3. Costruzione del pacchetto di "Risoluzione Attiva"
+                risoluzione = {
+                    "type": "PROACTIVE_ASSISTANCE",
+                    "voice_text": ai_response,
+                    "maps_route": maps_suggestion,
+                    "penalty": penalty_points
+                }
+                
+                # 4. Invio delle istruzioni al veicolo (Frontend)
+                await websocket.send_text(json.dumps(risoluzione))
+                print("📡 Assistenza Proattiva inviata al veicolo con successo.")
 
-            print("Conducente disconnesso. Sessione di monitoraggio terminata.")
+    except WebSocketDisconnect:
+        print("❌ Veicolo disconnesso. Sessione V2N terminata.")
     except Exception as e:
-        print(f"Errore critico durante lo streaming: {e}")
-    finally:
-        # Rilascia la webcam quando si chiude la connessione (fondamentale per non bloccare la telecamera!)
-        cap.release()
+        print(f"⚠️ Errore critico nel server: {e}")
+    
