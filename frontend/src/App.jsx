@@ -33,13 +33,28 @@ function calculate_ear(landmarks, eye_indices) {
 }
 
 const playAlertBeep = () => {
-    const audio = new Audio('/beep.mp3');
+    const audio = new Audio('/public/beep.mp3');
     audio.play();
 };
 
-function App() {
-  const [status, setStatus] = useState("Connessione in corso...");
+// === COMPONENTE PRINCIPALE ===
+export default function App() {
+  // Stati UI
+  const [status, setStatus] = useState("Inizializzazione...");
   const [variableX, setVariableX] = useState(0);
+  const [isSleeping, setIsSleeping] = useState(false);
+  
+  // Stati Proattivi
+  const [safetyScore, setSafetyScore] = useState(100);
+  const [aiFeedback, setAiFeedback] = useState("Nessuna anomalia rilevata.");
+  const [routeSuggestion, setRouteSuggestion] = useState(null);
+
+  // Riferimenti
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const wsRef = useRef(null);
+  const closedStartTimeRef = useRef(null);
+  const lastAlarmTimeRef = useRef(0);
 
   useEffect(() => {  // Effettua la connessione WebSocket quando il componente viene montato
     const socket = new WebSocket('ws://localhost:8000/ws');
@@ -97,5 +112,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
