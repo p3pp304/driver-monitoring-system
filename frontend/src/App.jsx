@@ -56,19 +56,24 @@ export default function App() {
   const closedStartTimeRef = useRef(null);
   const lastAlarmTimeRef = useRef(0);
 
-  useEffect(() => {  // Effettua la connessione WebSocket quando il componente viene montato
-    const socket = new WebSocket('ws://localhost:8000/ws');
-
-    socket.onopen = () => setStatus("Sistema Attivo");
-    socket.onmessage = (event) => {
-      console.log("Dati DMS:", event.data);
-      // Qui aggiorneremo il valore della variabile x
+  // --- 1. WEBSOCKET ---
+  useEffect(() => {   // Stabilisce la connessione WebSocket al backend FastAPI; viene eseguito una sola volta all'avvio di App
+    wsRef.current = new WebSocket('ws://localhost:8000/ws');
+    wsRef.current.onopen = () => setStatus("Connesso al Server");
+    wsRef.current.onclose = () => setStatus("Disconnesso");
+    
+    wsRef.current.onmessage = (event) => {
+      const response = JSON.parse(event.data);
+      if (response.type === "PROACTIVE_ASSISTANCE") {
+        setAiFeedback(response.voice_text);
+        setRouteSuggestion(response.maps_route);
+        setSafetyScore(prev => Math.max(0, prev - response.penalty));
+      }
     };
-    socket.onclose = () => setStatus("Offline");
+    return () => wsRef.current.close();
+  }, []);
 
-    return () => socket.close(); // Chiude la connessione WebSocket quando il componente viene smontato
-  }, []);  // []--> Effettua la connessione WebSocket una sola volta all'avvio del componente
-
+  //CONTINUARE DA QUI PROSSIMA VOLTA
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       
