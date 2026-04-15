@@ -134,18 +134,17 @@ export default function App() {
 // --- 3. INTERFACCIA MINIMAL ---
   return (
     <div className="min-h-screen bg-black text-white p-4">
-      
       {/* HEADER */}
-      <header className="flex justify-between items-center mb-5 ">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">Driver Monitoring System</h1>
-          <p className="text-gray-400">{status}</p>
+      <header className=" mb-5 ">
+        <div className='flex justify-between items-center'>
+          <h1 className="text-3xl font-bold text-blue-400">Driver Monitoring System</h1>
+          <h2 className={`text-3xl font-bold ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>Score: {safetyScore}</h2>
         </div>
-        <h2 className="text-3xl font-bold text-green-400">Score: {safetyScore}</h2>
+        <p className="text-gray-400">{status}</p>
       </header>
 
       {/* CONTENITORE PRINCIPALE (Webcam a sinistra, Dati a destra) */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4 items-start">
         
         {/* WEBCAM E ALLARME */}
         <div className="relative w-full md:w-2/3 bg-gray-900 aspect-video shrink-0">
@@ -160,7 +159,7 @@ export default function App() {
           {/* OVERLAY ALLARME */}
           {isSleeping && variableX > X_SLEEP_THRESHOLD && (
             <div className="absolute inset-0 bg-red-600 flex items-center justify-center animate-pulse">
-              <span className="text-white text-6xl font-black ">ALLARME!</span>
+              <span className="text-white text-7xl font-black ">ALLARME!</span>
             </div>
           )}
         </div>
