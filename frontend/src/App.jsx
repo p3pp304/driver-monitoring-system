@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaceMesh } from '@mediapipe/face_mesh';
 import { Camera } from '@mediapipe/camera_utils';
 
@@ -10,7 +10,7 @@ import { Camera } from '@mediapipe/camera_utils';
 const LEFT_EYE = [362, 385, 387, 263, 373, 390]
 const RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 const EAR_THRESHOLD = 0.2  //Soglia empirica sotto la quale l'occhio è considerato chiuso
-const X_SLEEP_THRESHOLD = 1.5; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
+const X_SLEEP_THRESHOLD = 0.8; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
 
 function calculate_ear(landmarks, eye_indices) {
     /*Calcola l'Eye Aspect Ratio (EAR).
@@ -85,8 +85,8 @@ export default function App() {
 
     faceMesh.onResults((results) => {
       // Disegna la webcam
-      canvasCtx.clearRect(0, 0, 640, 480);
-      canvasCtx.drawImage(results.image, 0, 0, 640, 480);
+      canvasCtx.clearRect(0, 0, 1280, 720);
+      canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
       
       if (results.multiFaceLandmarks?.[0]) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -100,10 +100,10 @@ export default function App() {
           setIsSleeping(true);
 
           // Allarme
-          if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 5000)) {
+          if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
             
             // Suona il file MP3 in modo semplicissimo!
-            new Audio('/beep.mp3').play(); 
+            new Audio('/public/beep.mp3').play(); 
             
             // Invia dati al server
             wsRef.current?.send(JSON.stringify({
@@ -124,52 +124,71 @@ export default function App() {
     // Avvia Webcam
     const camera = new Camera(videoRef.current, {
       onFrame: async () => await faceMesh.send({ image: videoRef.current }),
-      width: 640, height: 480
+      width: 1280, height: 720
     });
     camera.start();
   }, []);
 
   
+// --- 3. INTERFACCIA MINIMAL ---
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-black text-white p-4">
       
-      {/* Titolo */}
-      <h1 className="text-4xl font-bold text-blue-400 mb-8 tracking-wide">
-        DMS - Driver Monitoring System
-      </h1>
-      
-      {/* Contenitore delle Card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-10">
+      {/* HEADER */}
+      <header className="flex justify-between items-center mb-4 max-w-6xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-bold text-blue-400">DMS Proattivo</h1>
+          <p className="text-gray-400">{status}</p>
+        </div>
+        <h2 className="text-3xl font-bold text-green-400">Score: {safetyScore}</h2>
+      </header>
+
+      {/* CONTENITORE PRINCIPALE (Webcam a sinistra, Dati a destra) */}
+      <div className="flex flex-col md:flex-row gap-4">
         
-        {/* Card 1: Stato */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col items-center">
-          <span className="text-slate-400 text-sm uppercase tracking-wider mb-2">
-            Stato Sensore
-          </span>
-          <span className={`text-2xl font-semibold ${status === "Sistema Attivo" ? "text-green-400" : "text-yellow-400"}`}>
-            {status}
-          </span>
+        {/* WEBCAM E ALLARME */}
+        <div className="relative w-full md:w-2/3 bg-gray-900 aspect-video shrink-0">
+          <video ref={videoRef} className="hidden" playsInline></video>
+          <canvas 
+            ref={canvasRef} 
+            width="1280" 
+            height="720"
+            className="w-full h-full transform -scale-x-100 object-cover" 
+          ></canvas>
+
+          {/* OVERLAY ALLARME */}
+          {isSleeping && variableX > X_SLEEP_THRESHOLD && (
+            <div className="absolute inset-0 bg-red-600 flex items-center justify-center animate-pulse">
+              <span className="text-white text-6xl font-black ">ALLARME!</span>
+            </div>
+          )}
         </div>
 
-        {/* Card 2: La tua Variabile x */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col items-center">
-          <span className="text-slate-400 text-sm uppercase tracking-wider mb-2">
-            Variabile x (Chiusura Occhi)
-          </span>
-          <div className="text-4xl font-mono font-bold text-white">
-            {variableX} <span className="text-lg text-slate-500">sec</span>
+        {/* PANNELLI DATI */}
+        <div className="w-full md:w-1/3 flex flex-col gap-4 text-lg">
+          
+          {/* 1. Variabile X */}
+          <div className={`p-4 ${isSleeping && variableX > 0 ? 'bg-red-900' : 'bg-gray-800'}`}>
+            <span className="text-gray-400 text-sm">Variabile x (Chiusura)</span>
+            <div className="text-4xl font-bold">{variableX} s</div>
           </div>
-        </div>
-        
-      </div>
 
-      {/* Riquadro Video */}
-      <div className="w-full max-w-3xl aspect-video bg-black rounded-3xl border-4 border-slate-800 flex items-center justify-center">
-        <p className="text-slate-500 italic">
-          Streaming Webcam (Prossima Fase)
-        </p>
+          {/* 2. Assistente IA */}
+          <div className="p-4 bg-gray-800">
+            <span className="text-gray-400 text-sm">Assistente IA</span>
+            <p className="italic mt-1 break-words">"{aiFeedback}"</p>
+          </div>
+
+          {/* 3. Mappe */}
+          <div className="p-4 bg-gray-800">
+            <span className="text-gray-400 text-sm">Navigazione</span>
+            <p className="font-bold mt-1 break-words">
+              {routeSuggestion ? `${routeSuggestion.name} (+${routeSuggestion.distance} min)` : "Nessuna deviazione"}
+            </p>
+          </div>
+
+        </div>
       </div>
-      
     </div>
   );
 }
