@@ -88,18 +88,19 @@ export default function App() {
       canvasCtx.clearRect(0, 0, 1280, 720);
       canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
       
-      if (results.multiFaceLandmarks?.[0]) {
+      if (results.multiFaceLandmarks?.[0]) { // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
         const landmarks = results.multiFaceLandmarks[0];
         const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
 
         if (ear < EAR_THRESHOLD) {
-          if (!closedStartTimeRef.current) closedStartTimeRef.current = performance.now();
+          if (!closedStartTimeRef.current) {
+           closedStartTimeRef.current = performance.now();}
           
-          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;
+          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000; // tempo da millisecondi a secondi
           setVariableX(timeClosed.toFixed(2));
           setIsSleeping(true);
 
-          // Allarme
+          // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
           if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
             
             // Suona il file MP3 in modo semplicissimo!
@@ -135,9 +136,9 @@ export default function App() {
     <div className="min-h-screen bg-black text-white p-4">
       
       {/* HEADER */}
-      <header className="flex justify-between items-center mb-4 max-w-6xl mx-auto">
+      <header className="flex justify-between items-center mb-5 ">
         <div>
-          <h1 className="text-2xl font-bold text-blue-400">DMS Proattivo</h1>
+          <h1 className="text-2xl font-bold text-blue-600">Driver Monitoring System</h1>
           <p className="text-gray-400">{status}</p>
         </div>
         <h2 className="text-3xl font-bold text-green-400">Score: {safetyScore}</h2>
