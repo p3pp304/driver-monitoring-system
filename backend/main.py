@@ -52,9 +52,32 @@ async def websocket_endpoint(websocket: WebSocket):
                     "lng": 16.5678
                 }
                 
-                penalty_points = 5 # Punti da sottrarre al Safety Score
+                
+                last_event_time = None
+
+                def calculate_smart_penalty(var_x):
+                    global last_event_time
+                    now = datetime.now()
+                    
+                    # 1. Penalità base proporzionale alla durata
+                    if (float(var_x) < 1.5):
+                        base_penalty = 5
+                    elif (float(var_x) < 3.0):
+                        base_penalty = 10
+                    else:
+                        base_penalty = 20
+
+                    # 2. Controllo recidività (entro 1 minuto)
+                    multiplier = 1.0
+                    if last_event_time and (now - last_event_time).seconds < 60:
+                        multiplier = 2.0  # Raddoppia la penalità se è recidivo
+                        if (now - last_event_time).seconds < 30:
+                            multiplier = 3.0  # Triplica se è molto recidivo
+                    last_event_time = now
+                    return base_penalty * multiplier # Punti da sottrarre al Safety Score
                 
                 # 3. Costruzione del pacchetto di "Risoluzione Attiva"
+                penalty_points = calculate_smart_penalty(var_x)
                 risoluzione = {
                     "type": "PROACTIVE_ASSISTANCE",
                     "voice_text": ai_response,
