@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 from datetime import datetime
+from gemini_service import genera_assistenza_vocale
 
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI()                                                        
@@ -40,10 +41,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"🚨 ALLARME RICEVUTO! Il conducente ha chiuso gli occhi per {var_x} secondi.")
                 
                 # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
-                # (Qui in futuro integreremo le vere API di Gemini e Google Maps)
-                # Per ora simuliamo la loro risposta intelligente:
                 
-                ai_response = f"Attenzione, ho rilevato un colpo di sonno di {var_x} secondi. Ti consiglio vivamente di fermarti. Ho impostato il navigatore per l'area di sosta più vicina."
+                ai_response = ""
+                async for chunk in genera_assistenza_vocale(var_x):
+                    ai_response += chunk
                 
                 maps_suggestion = {
                     "name": "Area di Sosta 'La Macchia' (A14)",
