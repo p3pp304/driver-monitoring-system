@@ -52,7 +52,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "lng": 16.5678
                 }
                 
-                
                 last_event_time = None
 
                 def calculate_smart_penalty(var_x):
