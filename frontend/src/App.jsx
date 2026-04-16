@@ -55,6 +55,7 @@ export default function App() {
   const wsRef = useRef(null);
   const closedStartTimeRef = useRef(null);
   const lastAlarmTimeRef = useRef(0);
+  const lastDistractionTime = useRef(0); // <-- 1. Traccia l'orario dell'ultimo errore
 
   // --- 1. WEBSOCKET ---
   useEffect(() => {   // Stabilisce la connessione WebSocket al backend FastAPI; viene eseguito una sola volta all'avvio di App
@@ -68,10 +69,34 @@ export default function App() {
         setAiFeedback(response.voice_text);
         setRouteSuggestion(response.maps_route);
         setSafetyScore(prev => Math.max(0, prev - response.penalty));
+        lastDistractionTime.current = Date.now(); 
       }
     };
     return () => wsRef.current.close();
   }, []);
+
+// --- 3. IL TIMER DEL BONUS ---
+useEffect(() => {
+  const bonusInterval = setInterval(() => {
+    const now = Date.now();
+    // Calcola i secondi passati dall'ultimo errore
+    const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
+
+    // Se sono passati 600 secondi (10 minuti)
+    if (secondsSinceLast >= 600) {
+      setSafetyScore(prev => {
+        if (prev < 100) {
+          return Math.min(100, prev + 5);
+        }
+        return prev;
+      });
+      
+      // Resetta il timer
+      lastDistractionTime.current = Date.now();
+    }
+  }, 1000); // Il controllo scatta ogni secondo
+  return () => clearInterval(bonusInterval);
+}, []); 
 
   // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
   useEffect(() => {
