@@ -33,7 +33,7 @@ function calculate_ear(landmarks, eye_indices) {
 }
 
 const playAlertBeep = () => {
-    const audio = new Audio('/public/beep.mp3');
+    const audio = new Audio('/beep.mp3');
     audio.play();
 };
 
@@ -129,7 +129,7 @@ useEffect(() => {
           if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
             
             // Suona il file MP3 in modo semplicissimo!
-            new Audio('/public/beep.mp3').play(); 
+            new Audio('/beep.mp3').play(); 
             
             // Invia dati al server
             wsRef.current?.send(JSON.stringify({
