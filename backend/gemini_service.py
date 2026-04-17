@@ -19,7 +19,7 @@ async def genera_assistenza_vocale(x):
         
         if secondi_trascorsi < AI_COOLDOWN_SECONDS:
             minuti_rimanenti = int((AI_COOLDOWN_SECONDS - secondi_trascorsi) / 60)
-            print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA.")
+            print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA. Ho applicato risposta pre-impostata.")
             
             # Fallback pulito senza asterischi per il sintetizzatore vocale
             return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
@@ -38,6 +38,6 @@ async def genera_assistenza_vocale(x):
         return response.text
         
     except Exception as e:
-        print(f"Errore durante la chiamata Gemini: {e}")
+        print(f"Errore durante la chiamata Gemini: {e}. Applicata risposta pre-impostata.")
         # Fallback pulito anche in caso di crash dell'API
         return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
