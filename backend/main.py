@@ -4,7 +4,8 @@ from datetime import datetime
 from gemini_service import genera_assistenza_vocale
 
 # Inizializzazione dell'applicazione FastAPI
-app = FastAPI()                                                        
+app = FastAPI()   
+last_event_time = None                                                     
 
 @app.get("/")
 async def health_check():
@@ -42,18 +43,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
                 
-                ai_response = ""
-                async for chunk in genera_assistenza_vocale(var_x):
-                    ai_response += chunk
-                
+                ai_response = await genera_assistenza_vocale(var_x)
+            
                 maps_suggestion = {
                     "name": "Area di Sosta 'La Macchia' (A14)",
                     "distance": "3", # minuti di deviazione
                     "lat": 41.1234,
                     "lng": 16.5678
                 }
-                
-                last_event_time = None
 
                 def calculate_smart_penalty(var_x):
                     global last_event_time
