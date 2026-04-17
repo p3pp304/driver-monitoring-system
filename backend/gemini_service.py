@@ -23,13 +23,13 @@ async def genera_assistenza_vocale(x):
             
             # Fallback pulito senza asterischi per il sintetizzatore vocale
             return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
-            return
+            
 
     # Il prompt rimane rigoroso per evitare che l'IA generi punteggiatura strana
     prompt = f"Il conducente ha chiuso gli occhi per {x} secondi. Genera una frase brevissima (max 15 parole) per avvertirlo della pericolosità della situazione e consigliargli di accostare immediatamente. Sottolinea anche il tempo di chiusura degli occhi per enfatizzare il rischio. Non mettere nulla in grassetto o in corsivo e non usare emoji. Rispondi solo con la frase, senza introduzioni o spiegazioni. Cerca di essere molto diretto e chiaro, come se stessi parlando a un guidatore in pericolo imminente."
     
     try:
-        response = client.models.generate_content_stream(
+        response = client.models.generate_content(
             model='gemini-2.5-flash-lite',
             contents=prompt,
         )
