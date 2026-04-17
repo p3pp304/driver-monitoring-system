@@ -1,24 +1,47 @@
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
+from datetime import datetime 
+from google import genai
 
-# Carica le variabili dal file .env (dove metterai GEMINI_API_KEY)
-load_dotenv()
+# Inizializzazione del client
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# Configurazione iniziale con la tua API Key
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+# Variabili di stato
+last_ai_response_time = None
+AI_COOLDOWN_SECONDS = 600
 
-# Scegliamo il modello Flash per la massima reattività
-model = genai.GenerativeModel('gemini-1.5-flash')
+async def genera_assistenza_vocale(x):
+    global last_ai_response_time
+    now = datetime.now()
 
-async def genera_assistenza_vocale(motivo_allarme):
-    prompt = f"Il conducente ha avuto un colpo di sonno per {motivo_allarme}. Genera una singola frase breve (massimo 15 parole) per svegliarlo e dirgli di accostare."
+    # Controlliamo il timer solo se c'è stata una chiamata precedente
+    if last_ai_response_time:
+        secondi_trascorsi = (now - last_ai_response_time).total_seconds()
+        
+        if secondi_trascorsi < AI_COOLDOWN_SECONDS:
+            minuti_rimanenti = int((AI_COOLDOWN_SECONDS - secondi_trascorsi) / 60)
+            print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA.")
+            
+            # Fallback pulito senza asterischi per il sintetizzatore vocale
+            yield f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
+            return
+
+    # Il prompt rimane rigoroso per evitare che l'IA generi punteggiatura strana
+    prompt = f"Il conducente ha chiuso gli occhi per {x} secondi. Genera una frase brevissima (max 15 parole) per avvertirlo della pericolosità della situazione e consigliargli di accostare immediatamente. Sottolinea anche il tempo di chiusura degli occhi per enfatizzare il rischio. Non mettere nulla in grassetto o in corsivo e non usare emoji. Rispondi solo con la frase, senza introduzioni o spiegazioni. Cerca di essere molto diretto e chiaro, come se stessi parlando a un guidatore in pericolo imminente."
     
-    # Avviamo la richiesta in modalità stream
-    risposta_stream = model.generate_content(prompt, stream=True)
-    
-    # Restituiamo i pezzettini di testo man mano che arrivano
-    for chunk in risposta_stream:
-        # Puliamo eventuali ritorni a capo per evitare problemi di formattazione JSON
-        testo_pulito = chunk.text.replace("\n", " ")
-        yield testo_pulito
+    try:
+        response = client.models.generate_content_stream(
+            model='gemini-2.5-flash-lite',
+            contents=prompt,
+        )
+        
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+                
+        # Aggiorniamo il timestamp solo se il ciclo va a buon fine
+        last_ai_response_time = datetime.now()
+        
+    except Exception as e:
+        print(f"Errore durante la chiamata Gemini: {e}")
+        # Fallback pulito anche in caso di crash dell'API
+        yield f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
