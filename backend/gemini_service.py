@@ -22,7 +22,7 @@ async def genera_assistenza_vocale(x):
             print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA.")
             
             # Fallback pulito senza asterischi per il sintetizzatore vocale
-            yield f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
+            return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
             return
 
     # Il prompt rimane rigoroso per evitare che l'IA generi punteggiatura strana
@@ -34,14 +34,10 @@ async def genera_assistenza_vocale(x):
             contents=prompt,
         )
         
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-                
-        # Aggiorniamo il timestamp solo se il ciclo va a buon fine
         last_ai_response_time = datetime.now()
+        return response.text
         
     except Exception as e:
         print(f"Errore durante la chiamata Gemini: {e}")
         # Fallback pulito anche in caso di crash dell'API
-        yield f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
+        return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
