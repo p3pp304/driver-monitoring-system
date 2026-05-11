@@ -32,6 +32,13 @@ function calculate_ear(landmarks, eye_indices) {
     return (v1 + v2) / (2.0 * h)
 }
 
+// Funzione per formattare i secondi in Minuti:Secondi
+const formatTime = (totalSeconds) => {
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${m}m ${s}s`;
+};
+
 const playAlertBeep = () => {
     const audio = new Audio('/beep.mp3');
     audio.play();
@@ -40,6 +47,8 @@ const playAlertBeep = () => {
 // === COMPONENTE PRINCIPALE ===
 export default function App() {
   // Stati UI
+  const [sessionStatus, setSessionStatus] = useState("idle"); 
+  const [distractionCount, setDistractionCount] = useState(0);
   const [status, setStatus] = useState("Inizializzazione...");
   const [variableX, setVariableX] = useState(0);
   const [isSleeping, setIsSleeping] = useState(false);
@@ -53,12 +62,45 @@ export default function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
+  const cameraRef = useRef(null);
   const closedStartTimeRef = useRef(null);
   const lastAlarmTimeRef = useRef(0);
   const lastDistractionTime = useRef(0); // <-- 1. Traccia l'orario dell'ultimo errore
+  const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
+
+// --- FUNZIONE INTERRUTTORE ---
+  const toggleJourney = () => {
+    if (sessionStatus !== "active") {
+      // INIZIA IL VIAGGIO
+      setSafetyScore(100);
+      setDistractionCount(0);
+      setVariableX(0);
+      setTripDuration(0);
+      setAiFeedback("Nessuna anomalia rilevata.");
+      setRouteSuggestion(null);
+      setSessionStatus("active");
+      setStatus("Sensori e V2N Attivi");
+      
+      tripStartTimeRef.current = Date.now(); // Fa partire il timer
+      lastDistractionTime.current = Date.now(); 
+    } else {
+      // TERMINA IL VIAGGIO
+      setSessionStatus("finished");
+      setStatus("Viaggio Terminato");
+      
+      // Calcola i secondi totali trascorsi dall'inizio
+      if (tripStartTimeRef.current) {
+          const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
+          setTripDuration(totalSeconds);
+      }
+    }
+  };
 
   // --- 1. WEBSOCKET ---
   useEffect(() => {   // Stabilisce la connessione WebSocket al backend FastAPI; viene eseguito una sola volta all'avvio di App
+    // BLOCCO: Ferma tutto se il viaggio non è "active"
+    if (sessionStatus !== "active") return;
+
     wsRef.current = new WebSocket('ws://localhost:8000/ws');
     wsRef.current.onopen = () => setStatus("Connesso al Server");
     wsRef.current.onclose = () => setStatus("Disconnesso");
@@ -69,14 +111,16 @@ export default function App() {
         setAiFeedback(response.voice_text);
         setRouteSuggestion(response.maps_route);
         setSafetyScore(prev => Math.max(0, prev - response.penalty));
+        setDistractionCount(prev => prev + 1);
         lastDistractionTime.current = Date.now(); 
       }
     };
     return () => wsRef.current.close();
-  }, []);
+  }, [sessionStatus]); // Rinnova la connessione solo quando cambia lo stato del viaggio
 
 // --- 3. IL TIMER DEL BONUS ---
 useEffect(() => {
+  if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
   const bonusInterval = setInterval(() => {
     const now = Date.now();
     // Calcola i secondi passati dall'ultimo errore

@@ -5,40 +5,32 @@ skinparam packageStyle rectangle
 actor "Conducente" as user
 actor "API Gemini\n(AI Generativa)" as ai
 actor "API Mappe\n(Navigazione)" as maps
-database "Database\n(SQLite/PostgreSQL)" as db
 
 rectangle "Driver Monitoring System" {
   
-  usecase "Gestire Autenticazione\n(Login/Registrazione)" as UC_Auth
-  usecase "Visualizzare Statistiche\ne Storico" as UC_Stats
   usecase "Avviare Sessione di Monitoraggio" as UC_Start
   usecase "Terminare Sessione di Monitoraggio" as UC_End
   
   usecase "Analizzare Parametri Biometrici\n(Variabile x - MediaPipe)" as UC_Monitor
-  usecase "Rilevare Uso Smartphone\n(Object Detection - YOLO)" as UC_Phone
   
   usecase "Aggiornare Safety Score\n(Gamification)" as UC_Score
   usecase "Gestire Allarme Distrazione" as UC_Alarm
   
   usecase "Emettere Allarme Acustico\n(Beep Locale)" as UC_Beep
   usecase "Generare Assistenza Proattiva\n(Server-side)" as UC_Proactive
-  usecase "Salvare Risultati Sessione" as UC_Save
+  usecase "Visualizzare Riepilogo Sessione" as UC_Summary
 
   ' Interazioni dell'utente
-  user --> UC_Auth
-  user --> UC_Stats
   user --> UC_Start
   user --> UC_End
   
-  ' Avvio del monitoraggio include entrambi i controlli AI
+  ' Avvio del monitoraggio 
   UC_Start .> UC_Monitor : <<include>>
-  UC_Start .> UC_Phone : <<include>>
   
-  ' Gestione Allarme si innesca se c'è un'anomalia in uno dei due
+  ' Gestione Allarme si innesca se x > soglia
   UC_Monitor <.. UC_Alarm : <<extend>>\n(Se x > Soglia)
-  UC_Phone <.. UC_Alarm : <<extend>>\n(Se smartphone rilevato)
   
-' Il Safety score si aggiorna in base al tempo (Bonus) e agli allarmi (Penalità)
+  ' Gamification
   UC_Monitor <.. UC_Score : <<extend>>\n(Bonus periodico)
   UC_Alarm <.. UC_Score : <<extend>>\n(Sottrazione penalità)
   
@@ -46,14 +38,11 @@ rectangle "Driver Monitoring System" {
   UC_Alarm .> UC_Beep : <<include>>
   UC_Alarm .> UC_Proactive : <<include>>
   
-  ' Chiusura sessione salva i dati
-  UC_End .> UC_Save : <<include>>
+  ' Fine viaggio
+  UC_End .> UC_Summary : <<include>>
   
-  ' Collegamenti agli attori esterni
+  ' Collegamenti esterni
   UC_Proactive --> ai
   UC_Proactive --> maps
-  UC_Save --> db
-  UC_Stats --> db
-  UC_Auth --> db
 }
 @enduml
