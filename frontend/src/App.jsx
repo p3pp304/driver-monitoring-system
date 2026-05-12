@@ -116,6 +116,8 @@ export default function App() {
         lastDistractionTime.current = Date.now();  // Aggiorna l'orario dell'ultimo errore
       }
     };
+    return () => { if (wsRef.current) wsRef.current.close(); };
+  }, [sessionStatus]);
 
     // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
   useEffect(() => {
@@ -136,7 +138,7 @@ export default function App() {
         const landmarks = results.multiFaceLandmarks[0];
         const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
 
-        if (ear < EAR_THRESHOLD) {
+        if (ear < EAR_THRESHOLD && sessionStatus === "active") {  // Se l'EAR è sotto la soglia e siamo in viaggio, considera gli occhi chiusi{
           if (!closedStartTimeRef.current) {
            closedStartTimeRef.current = performance.now();}
           
@@ -209,33 +211,43 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-white p-4">
       {/* HEADER */}
-      <header className=" mb-5 ">
-        <div className='flex justify-between items-center'>
-          <h1 className="text-3xl font-bold text-blue-400">Driver Monitoring System</h1>
-          <p className="text-gray-400 mt-1">{status}</p>
+      <header className="mb-8 flex gap-6 justify-between bg-gray-900 p-6 rounded-2xl border border-gray-800">
+  
+        {/* 1. OGGETTO A SINISTRA: Il Titolo */}
+        <h1 className="p-1 text-3xl font-bold text-blue-400">
+          Driver Monitoring System
+        </h1>
+
+        {/* 2. OGGETTO CENTRALE: Safety Score e Stato */}
+        <div className="p-1 flex flex-col items-center gap-1">
+            <h2 className={`text-3xl font-black ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
+              Score: {safetyScore}
+            </h2>
+            <p className="text-sm text-gray-500 font-medium">{status}</p>
         </div>
-        <div className="flex justify-between items-center gap-8">
-          <h2 className={`text-3xl font-bold ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
-            Score: {safetyScore}</h2>
-          <p className="text-gray-400">{status}</p>
+
+        {/* 3. OGGETTO A DESTRA: Bottone */}
+        <div className="p-1">
+          {/* Il Bottone */}
           <button 
             onClick={toggleJourney}
-            className={`font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg ${
+            className={`font-bold py-3 px-8 rounded-xl text-lg transition-all shadow-md active:scale-95 ${
               sessionStatus === "active" ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"
             }`}
           >
             {sessionStatus === "active" ? "Termina Viaggio" : (sessionStatus === "finished" ? "Nuovo Viaggio" : "Inizia Viaggio")}
           </button>
+
         </div>
-        
       </header>
+      
 
       {/* DASHBOARD (visibile solo se in attesa o in viaggio) */}
       {sessionStatus !== "finished" && (
         <div className="flex flex-col md:flex-row gap-4 items-start">
         
         {/* WEBCAM E ALLARME */}
-        <div className="relative w-full md:w-2/3 bg-gray-900 aspect-video shrink-0">
+        <div className="relative w-full md:w-2/3 bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           {sessionStatus === "idle" && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
               Premi "Inizia Viaggio" per attivare la telecamera
@@ -246,11 +258,11 @@ export default function App() {
             ref={canvasRef} 
             width="1280" 
             height="720"
-            className="w-full h-full transform -scale-x-100 object-cover" 
+            className="w-full h-full transform -scale-x-100 object-cover rounded-2xl" 
           ></canvas>
 
           {/* OVERLAY ALLARME */}
-          {isSleeping && variableX > X_SLEEP_THRESHOLD && (
+          {isSleeping && variableX > X_SLEEP_THRESHOLD && sessionStatus === "active" && (
             <div className="absolute inset-0 bg-red-600 flex items-center justify-center animate-pulse">
               <span className="text-white text-7xl font-black ">ALLARME!</span>
             </div>
@@ -261,20 +273,20 @@ export default function App() {
         <div className="w-full md:w-1/3 flex flex-col gap-4 text-lg">
           
           {/* 1. Variabile X */}
-          <div className={`p-4 ${isSleeping && variableX > 0 ? 'bg-red-900' : 'bg-gray-800'}`}>
-            <span className="text-gray-400 text-sm">Variabile x (Chiusura)</span>
+          <div className={`p-4 rounded-xl ${isSleeping && variableX > 0 ? 'bg-red-900' : 'bg-gray-800'}`}>
+            <span className="text-gray-500 text-sm uppercase font-bold">Variabile x (Chiusura)</span>
             <div className="text-4xl font-bold">{variableX} s</div>
           </div>
 
           {/* 2. Assistente IA */}
-          <div className="p-4 bg-gray-800">
-            <span className="text-gray-400 text-sm">Assistente IA</span>
+          <div className="p-4 bg-gray-800 rounded-xl">
+            <span className="text-gray-500 text-sm uppercase font-bold">Assistente IA</span>
             <p className="italic mt-1 break-words">"{aiFeedback}"</p>
           </div>
 
           {/* 3. Mappe */}
-          <div className="p-4 bg-gray-800">
-            <span className="text-gray-400 text-sm">Navigazione</span>
+          <div className="p-4 bg-gray-800 rounded-xl">
+            <span className="text-gray-500 text-sm uppercase font-bold">Navigazione</span>
             <p className="font-bold mt-1 break-words">
               {routeSuggestion ? `${routeSuggestion.name} (+${routeSuggestion.distance} min)` : "Nessuna deviazione"}
             </p>
@@ -283,7 +295,37 @@ export default function App() {
         </div>
       </div>
       )}
+
+      {/* PANNELLO STATISTICHE FINALI (Appare solo a fine viaggio) */}
+      {sessionStatus === "finished" && (
+        <div className="mt-8 p-8 bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl">
+          <h2 className="text-2xl text-white font-bold mb-6">Riepilogo Sessione di Guida</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div className="p-6 bg-black rounded-xl border border-gray-800">
+              <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">Tempo di Guida</div>
+              <div className="text-5xl font-black text-blue-400">
+                {formatTime(tripDuration)}
+              </div>
+            </div>
+
+            <div className="p-6 bg-black rounded-xl border border-gray-800">
+              <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">Safety Score Finale</div>
+              <div className={`text-5xl font-black ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
+                {safetyScore}/100
+              </div>
+            </div>
+            
+            <div className="p-6 bg-black rounded-xl border border-gray-800">
+              <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">Eventi di Sonnolenza</div>
+              <div className="text-5xl font-black text-red-500">
+                {distractionCount}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
-    
   );
 }
