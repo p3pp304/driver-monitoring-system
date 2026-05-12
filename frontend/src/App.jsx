@@ -32,6 +32,28 @@ function calculate_ear(landmarks, eye_indices) {
     return (v1 + v2) / (2.0 * h)
 }
 
+// --- FUNZIONE TEXT-TO-SPEECH ---
+const speakText = (text) => {
+  // Verifica che il browser supporti la funzione
+  if ('speechSynthesis' in window) {
+    // 1. Ferma eventuali frasi precedenti ancora in riproduzione
+    window.speechSynthesis.cancel();
+
+    // 2. Prepara la frase da leggere
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // 3. Configura la voce
+    utterance.lang = 'it-IT'; // Imposta la pronuncia in italiano
+    utterance.rate = 1.2;     // Velocità di lettura (da 0.1 a 10)
+    utterance.pitch = 0;    // Tono della voce (da 0 a 2)
+    
+    // 4. Riproduci l'audio
+    window.speechSynthesis.speak(utterance);
+  } else {
+    console.warn("Sintesi vocale non supportata in questo browser.");
+  }
+};
+
 // Funzione per formattare i secondi in Minuti:Secondi
 const formatTime = (totalSeconds) => {
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); //    Math.floor--> "arrotondare per difetto" tagliando via i decimali
@@ -85,12 +107,24 @@ export default function App() {
       setUserStatus("In Viaggio");
       setTechStatus("Richiesta connessione V2N e avvio MediaPipe...");
       console.log("[SISTEMA] Avvio sessione di guida. Timestamp:", Date.now());
+      
+      speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
+
       tripStartTimeRef.current = Date.now(); // Fa partire il timer
       lastDistractionTime.current = Date.now(); 
 
     } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
       setSessionStatus("finished");
+      if (safetyScore >= 90) {
+        speakText(" Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato durante la guida.");
+      } else if (safetyScore >= 70) {
+        speakText("Viaggio terminato. Buon lavoro, ma c'è margine di miglioramento. Cerca di evitare distrazioni per mantenere un punteggio più alto.");
+      } else if (safetyScore >= 40) {
+        speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso. Cerca di mantenere la concentrazione alla guida per migliorare la tua sicurezza.");
+      }else {
+        speakText("Viaggio terminato. Il tuo punteggio di sicurezza è molto basso. Ti consigliamo in futuro di evitare distrazioni e di prestare maggiore attenzione alla guida per la tua sicurezza e quella degli altri.");
+      }
       setUserStatus("Viaggio Terminato");
       setTechStatus("Disconnessione sensori e calcolo metriche in corso...");
       console.log("[SISTEMA] Viaggio terminato. Chiusura moduli.");
@@ -105,6 +139,7 @@ export default function App() {
       setSessionStatus("idle");
       setSafetyScore(100);
       // LOGICA A DOPPIO STATUS
+      speakText("Premi il pulsante per il monitoraggio in tempo reale");
       setUserStatus("Pronto per una nuova partenza");
       setTechStatus("Sistema resettato. Idle state.");
       console.log("[SISTEMA] Reset dell'interfaccia completato.");
@@ -130,6 +165,7 @@ export default function App() {
       const response = JSON.parse(event.data);
       if (response.type === "PROACTIVE_ASSISTANCE") {
         setAiFeedback(response.voice_text);  // Aggiorna il feedback dell'assistente IA con il testo ricevuto dal server
+        speakText(response.voice_text);
         setRouteSuggestion(response.maps_route); // Aggiorna la proposta di deviazione con i dati ricevuti dal server (se presenti)
         setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Applica la penalità al punteggio di sicurezza, assicurandosi che non scenda sotto 0
         setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni (errori) 
@@ -269,8 +305,8 @@ export default function App() {
         {/* WEBCAM E ALLARME */}
         <div className="relative w-full md:w-2/3 bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           {sessionStatus === "idle" && (
-            <div className="p-4 absolute inset-0 z-10 flex items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
-              Premi "Inizia Viaggio" per attivare la telecamera
+            <div className="p-2 absolute inset-0 z-10 flex flex-col  text-center items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
+              Premi  "Inizia Viaggio" per il monitoraggio in tempo reale
             </div>
           )}
           <video ref={videoRef} className="hidden" playsInline></video>
