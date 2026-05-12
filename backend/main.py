@@ -62,7 +62,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # 2. Controllo dell'evento ricevuto
             if payload.get("event") == "DROWSINESS_DETECTED":
                 var_x = payload.get("variable_x")
-                location = payload.get("location", {"lat": 41.1087, "lng": 16.8784})
+                location = payload.get("location")
                 print(f"🚨 ALLARME RICEVUTO! Il conducente ha chiuso gli occhi per {var_x} secondi | Posizione: {location['lat']}, {location['lng']}")
                 
                 # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
