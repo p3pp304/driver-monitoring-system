@@ -5,8 +5,13 @@ def get_nearest_safe_zone(lat: float, lng: float):
     Interroga le API di OpenStreetMap (Overpass) per trovare il bar 
     o la stazione di servizio più vicina entro un raggio di 5 km.
     """
-    overpass_url = "http://overpass-api.de/api/interpreter"
+    overpass_url = "https://overpass.openstreetmap.fr/api/interpreter"
     
+    headers = {
+        'User-Agent': 'DriverMonitoringSystem/1.0 (Politecnico di Bari; Student Project)',
+        'Accept-Language': 'it'
+    }
+
     overpass_query = f"""
     [out:json];
     (
@@ -17,7 +22,7 @@ def get_nearest_safe_zone(lat: float, lng: float):
     """
     
     try:
-        response = requests.get(overpass_url, params={'data': overpass_query}, timeout=5)
+        response = requests.post(overpass_url, params={'data': overpass_query}, headers=headers, timeout=10)
         data = response.json()
         
         if data.get('elements'):
