@@ -270,12 +270,12 @@ export default function App() {
       <header className="mb-8 flex gap-6 justify-between bg-gray-900 p-6 rounded-2xl border border-gray-800">
   
         {/* 1. OGGETTO A SINISTRA: Il Titolo */}
-        <h1 className="p-1 text-3xl font-bold text-blue-400">
+        <h1 className="p-1 text-center text-3xl font-bold text-blue-400">
           Driver Monitoring System
         </h1>
 
         {/* 2. OGGETTO CENTRALE: Safety Score e Stato */}
-        <div className="p-1 flex flex-col items-center gap-1">
+        <div className="p-1 flex text-center flex-col items-center gap-1">
             <h2 className={`text-3xl font-black ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
               Score: {safetyScore}
             </h2>
@@ -283,7 +283,7 @@ export default function App() {
         </div>
 
         {/* 3. OGGETTO A DESTRA: Bottone */}
-        <div className="p-1">
+        <div>
           {/* Il Bottone */}
           <button 
             onClick={toggleJourney}
@@ -354,7 +354,7 @@ export default function App() {
 
       {/* PANNELLO STATISTICHE FINALI (Appare solo a fine viaggio) */}
       {sessionStatus === "finished" && (
-        <div className="mt-8 p-8 bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl">
+        <div className="mt-8 p-8 bg-gray-900 text-center rounded-2xl border border-gray-700 shadow-2xl">
           <h2 className="text-2xl text-white font-bold mb-6">Riepilogo Sessione di Guida</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
