@@ -1,23 +1,36 @@
 import os
 import httpx
 
-
 # ==========================================
 # 1. CONFIGURAZIONE API
 # ==========================================
 # In produzione, è consigliato inserire questa chiave in un file .env
 GEOAPIFY_API_KEY = os.environ.get("GEOAPIFY_API_KEY")
 
+def get_fallback_zone(lat: float, lng: float) -> dict:
+    """Restituisce la zona di emergenza in caso di errore o assenza di risultati."""
+    return {
+            "name": "Area sosta d'emergenza",
+            "lat": lat + 0.005,
+            "lng": lng + 0.005,
+            "distance_kilometers": 1,
+            "minuti_stimati": 5,
+            "success": False
+        }
+
 # ==========================================
 # 2. LOGICA DI RICERCA (TRAMITE GEOAPIFY)
 # ==========================================
 
-async def get_nearest_safe_zone(lat: float, lng: float):
+async def get_nearest_safe_zone(lat: float, lng: float)-> dict:
     """
     Interroga le Places API di Geoapify per trovare il bar o la stazione di servizio
     più vicina alla posizione del conducente.
     """
-    # Categorie: catering.cafe (bar) e service.fuel (stazioni di servizio)
+    if not GEOAPIFY_API_KEY:
+        print("[ERRORE] Chiave API Geoapify mancante o non caricata dal file .env.")
+        return get_fallback_zone(lat, lng)
+    
     categories = "catering.cafe,service.vehicle.fuel"
     radius_meters = 5000  # Cerchiamo in un raggio di 5 km
     
@@ -32,23 +45,16 @@ async def get_nearest_safe_zone(lat: float, lng: float):
     )
 
     try:
-        # Effettuiamo la chiamata GET
-        response = httpx.get(url, timeout=5)
-        data = response.json()
+        # Effettuiamo la chiamata GET asincrona usando httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=5.0)
+            data = response.json()
 
         # Controlliamo se la risposta contiene risultati validi
         if not data.get("features"):
             print("[GEOAPIFY] Nessuna safe zone trovata nel raggio di 5 km.")
-            return {
-            "name": "Area sosta d'emergenza",
-            "lat": lat + 0.005,
-            "lng": lng + 0.005,
-            "distance_kilometers": 1,
-            "minuti_stimati": 5,
-            "success": False
-        }
+            return get_fallback_zone(lat, lng)
             
-
         # Estraiamo il primo risultato (il più vicino)
         nearest_feature = data["features"][0]
         properties = nearest_feature["properties"]
@@ -66,7 +72,7 @@ async def get_nearest_safe_zone(lat: float, lng: float):
         distance_kilometers = float(distance_meters) / 1000
         minuti_stimati = max(1, int(distance_meters / 666))
 
-        print(f"[GEOAPIFY] Match: {name} a {minuti_stimati} min ({distance_meters}m).")
+        print(f"[GEOAPIFY] Match area: {name} a {minuti_stimati} min ({distance_meters}m).")
 
         return {
             "name": name,
@@ -80,11 +86,4 @@ async def get_nearest_safe_zone(lat: float, lng: float):
     except Exception as e:
         print(f"[ERRORE GEOAPIFY] {e}")
         # Fallback di emergenza nel caso l'API non risponda o non ci sia rete
-        return {
-            "name": "Area sosta d'emergenza",
-            "lat": lat + 0.005,
-            "lng": lng + 0.005,
-            "distance_kilometers": 1,
-            "minuti_stimati": 5,
-            "success": False
-        }
+        return get_fallback_zone(lat, lng)
