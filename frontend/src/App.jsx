@@ -34,8 +34,8 @@ function calculate_ear(landmarks, eye_indices) {
 
 // Funzione per formattare i secondi in Minuti:Secondi
 const formatTime = (totalSeconds) => {
-    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); //    Math.floor--> "arrotondare per difetto" tagliando via i decimali
+    const s = (totalSeconds % 60).toString().padStart(2, '0');   // Modulo (%) --> calcolare il resto di una divisione. 125 diviso 60 fa 2, con il resto di 5.  .padStart(2, '0') --> "Se il numero ha meno di due cifre, mettici uno zero davanti". Quindi il 2 diventa "02"
     return `${m}m ${s}s`;
 };
 
@@ -47,16 +47,17 @@ const playAlertBeep = () => {
 // === COMPONENTE PRINCIPALE ===
 export default function App() {
   // Stati UI
-  const [sessionStatus, setSessionStatus] = useState("idle"); 
-  const [distractionCount, setDistractionCount] = useState(0);
-  const [status, setStatus] = useState("Inizializzazione...");
-  const [variableX, setVariableX] = useState(0);
-  const [isSleeping, setIsSleeping] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState("idle"); // "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
+  const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
+  const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
+  const [status, setStatus] = useState("Inizializzazione...");  
+  const [variableX, setVariableX] = useState(0); // Tempo di chiusura occhi in secondi
+  const [isSleeping, setIsSleeping] = useState(false);  // Stato di allarme per chiusura occhi
   
   // Stati Proattivi
   const [safetyScore, setSafetyScore] = useState(100);
   const [aiFeedback, setAiFeedback] = useState("Nessuna anomalia rilevata.");
-  const [routeSuggestion, setRouteSuggestion] = useState(null);
+  const [routeSuggestion, setRouteSuggestion] = useState(null); 
 
   // Riferimenti
   const videoRef = useRef(null);
@@ -98,66 +99,40 @@ export default function App() {
 
   // --- 1. WEBSOCKET ---
   useEffect(() => {   // Stabilisce la connessione WebSocket al backend FastAPI; viene eseguito una sola volta all'avvio di App
-    // BLOCCO: Ferma tutto se il viaggio non è "active"
-    if (sessionStatus !== "active") return;
+    
+    if (sessionStatus !== "active") return;  // BLOCCO: Ferma tutto se il viaggio non è "active" (ovvero se è "idle" o "finished"). In questo modo, se l'utente preme il pulsante per iniziare il viaggio, allora si stabilisce la connessione WebSocket e si avviano i sensori. Se invece preme per terminare, la connessione si chiude e i sensori si fermano (grazie alla pulizia del useEffect).
 
-    wsRef.current = new WebSocket('ws://localhost:8000/ws');
-    wsRef.current.onopen = () => setStatus("Connesso al Server");
-    wsRef.current.onclose = () => setStatus("Disconnesso");
+    wsRef.current = new WebSocket('ws://localhost:8000/ws');  
+    wsRef.current.onopen = () => setStatus("Connesso al Server");  // Quando la connessione è stabilita, aggiorna lo stato per riflettere che siamo connessi
+    wsRef.current.onclose = () => setStatus("Disconnesso"); // Se la connessione si chiude (ad esempio, quando termina il viaggio), aggiorna lo stato per riflettere che siamo disconnessi
     
     wsRef.current.onmessage = (event) => {
       const response = JSON.parse(event.data);
       if (response.type === "PROACTIVE_ASSISTANCE") {
-        setAiFeedback(response.voice_text);
-        setRouteSuggestion(response.maps_route);
-        setSafetyScore(prev => Math.max(0, prev - response.penalty));
-        setDistractionCount(prev => prev + 1);
-        lastDistractionTime.current = Date.now(); 
+        setAiFeedback(response.voice_text);  // Aggiorna il feedback dell'assistente IA con il testo ricevuto dal server
+        setRouteSuggestion(response.maps_route); // Aggiorna la proposta di deviazione con i dati ricevuti dal server (se presenti)
+        setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Applica la penalità al punteggio di sicurezza, assicurandosi che non scenda sotto 0
+        setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni (errori) 
+        lastDistractionTime.current = Date.now();  // Aggiorna l'orario dell'ultimo errore
       }
     };
-    return () => wsRef.current.close();
-  }, [sessionStatus]); // Rinnova la connessione solo quando cambia lo stato del viaggio
 
-// --- 3. IL TIMER DEL BONUS ---
-useEffect(() => {
-  if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
-  const bonusInterval = setInterval(() => {
-    const now = Date.now();
-    // Calcola i secondi passati dall'ultimo errore
-    const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
-
-    // Se sono passati 600 secondi (10 minuti)
-    if (secondsSinceLast >= 600) {
-      setSafetyScore(prev => {
-        if (prev < 100) {
-          return Math.min(100, prev + 5);
-        }
-        return prev;
-      });
-      
-      // Resetta il timer
-      lastDistractionTime.current = Date.now();
-    }
-  }, 1000); // Il controllo scatta ogni secondo
-  return () => clearInterval(bonusInterval);
-}, []); 
-
-  // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
+    // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
   useEffect(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const canvasCtx = canvasRef.current.getContext('2d');
+    if (!videoRef.current || !canvasRef.current) return; // Sicurezza: se i riferimenti alla webcam o al canvas non sono pronti, esci dalla funzione
+    const canvasCtx = canvasRef.current.getContext('2d');  // Ottieni il contesto 2D del canvas per poter disegnare sopra la webcam
 
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });  //
 
     faceMesh.onResults((results) => {
-      // Disegna la webcam
+      // Disegna la webcam e i landmark (se presenti)
       canvasCtx.clearRect(0, 0, 1280, 720);
-      canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
+      if (results.image) canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
       
-      if (results.multiFaceLandmarks?.[0]) { // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
+      if (results.multiFaceLandmarks?.[0]) {    // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
         const landmarks = results.multiFaceLandmarks[0];
         const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
 
@@ -165,16 +140,13 @@ useEffect(() => {
           if (!closedStartTimeRef.current) {
            closedStartTimeRef.current = performance.now();}
           
-          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000; // tempo da millisecondi a secondi
+          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;  // tempo da millisecondi a secondi
           setVariableX(timeClosed.toFixed(2));
           setIsSleeping(true);
-
+          
           // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
           if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
-            
-            // Suona il file MP3 in modo semplicissimo!
-            new Audio('/beep.mp3').play(); 
-            
+            new Audio('/beep.mp3').play();   // Suona il file MP3
             // Invia dati al server
             wsRef.current?.send(JSON.stringify({
               event: "DROWSINESS_DETECTED",
@@ -192,12 +164,45 @@ useEffect(() => {
     });
 
     // Avvia Webcam
-    const camera = new Camera(videoRef.current, {
+    cameraRef.current = new Camera(videoRef.current, {
       onFrame: async () => await faceMesh.send({ image: videoRef.current }),
       width: 1280, height: 720
     });
-    camera.start();
-  }, []);
+    cameraRef.current.start();
+
+    // Pulizia allo spegnimento
+    return () => {
+      if (cameraRef.current) cameraRef.current.stop();
+      if (wsRef.current) wsRef.current.close();
+      faceMesh.close();
+    };
+  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
+
+  // --- 3. IL TIMER DEL BONUS ---
+  useEffect(() => {
+    if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
+    const bonusInterval = setInterval(() => {
+      const now = Date.now();
+      // Calcola i secondi passati dall'ultimo errore
+      const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
+
+      // Se sono passati 600 secondi (10 minuti)
+      if (secondsSinceLast >= 600) {
+        setSafetyScore(prev => {
+          if (prev < 100) {
+            return Math.min(100, prev + 5);
+          }
+          return prev;
+        });
+        
+        // Resetta il timer
+        lastDistractionTime.current = Date.now();
+      }
+    }, 1000); // Il controllo scatta ogni secondo
+    return () => clearInterval(bonusInterval);
+  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
+
+ 
 
   
 // --- 3. INTERFACCIA MINIMAL ---
