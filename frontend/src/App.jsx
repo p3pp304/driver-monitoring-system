@@ -71,7 +71,7 @@ export default function App() {
 
   // --- FUNZIONE INTERRUTTORE ---
   const toggleJourney = () => {
-    if (sessionStatus !== "active") {
+    if (sessionStatus === "idle") {
       // INIZIA IL VIAGGIO
       setSafetyScore(100);
       setDistractionCount(0);
@@ -84,7 +84,7 @@ export default function App() {
       
       tripStartTimeRef.current = Date.now(); // Fa partire il timer
       lastDistractionTime.current = Date.now(); 
-    } else {
+    } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO
       setSessionStatus("finished");
       setStatus("Viaggio Terminato");
@@ -94,6 +94,11 @@ export default function App() {
           const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
           setTripDuration(totalSeconds);
       }
+    }else if(sessionStatus === "finished") {
+      // RESETA PER UN NUOVO VIAGGIO
+      setSessionStatus("idle");
+      setStatus("In attesa di Inizio Viaggio");
+
     }
   };
 
