@@ -109,8 +109,6 @@ export default function App() {
       setSessionStatus("active");
       // LOGICA A DOPPIO STATUS
       setUserStatus("In Viaggio");
-      setTechStatus("Richiesta connessione V2N e avvio MediaPipe...");
-      console.log("[SISTEMA] Avvio sessione di guida. Timestamp:", Date.now());
       
       speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
 
@@ -125,19 +123,14 @@ export default function App() {
               lat: position.coords.latitude,
               lng: position.coords.longitude
             };
-            // Log tecnico opzionale per vedere le coordinate che cambiano
-            // console.log("[GPS] Aggiornamento:", currentLocationRef.current);
           },
-          (error) => console.warn("[GPS] Errore o segnale perso:", error),
-          { 
-            enableHighAccuracy: true, // Sfrutta l'antenna GPS hardware se disponibile
-            maximumAge: 10000,        // Accetta posizioni vecchie al massimo di 10 secondi
-            timeout: 5000             // Tempo massimo per agganciare il satellite
+          (error) => {
+            console.error("Errore nel rilevamento della posizione:", error);
           }
         );
       } else {
         console.warn("Geolocalizzazione non supportata dal browser.");
-      }
+      } 
 
     } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
@@ -152,8 +145,6 @@ export default function App() {
         speakText("Viaggio terminato. Il tuo punteggio di sicurezza è molto basso. Ti consigliamo in futuro di evitare distrazioni e di prestare maggiore attenzione alla guida per la tua sicurezza e quella degli altri.");
       }
       setUserStatus("Viaggio Terminato");
-      setTechStatus("Disconnessione sensori e calcolo metriche in corso...");
-      console.log("[SISTEMA] Viaggio terminato. Chiusura moduli.");
 
       // --- SPEGNIMENTO GPS ---
       if (watchIdRef.current) {
@@ -171,9 +162,8 @@ export default function App() {
       setSafetyScore(100);
       // LOGICA A DOPPIO STATUS
       speakText("Premi il pulsante per il monitoraggio in tempo reale");
-      setUserStatus("Pronto per una nuova partenza");
-      setTechStatus("Sistema resettato. Idle state.");
-      console.log("[SISTEMA] Reset dell'interfaccia completato.");
+      setUserStatus("Pronto per la partenza");
+ 
 
     }
   };
@@ -185,11 +175,11 @@ export default function App() {
 
     wsRef.current = new WebSocket('ws://localhost:8000/ws');  
     wsRef.current.onopen = () => {
-      setTechStatus("Connessione WebSocket [ONLINE]");
+      setTechStatus("Connesso al server");
       console.log("[NETWORK] Handshake WebSocket completato sulla porta 8000."); 
     };
     wsRef.current.onclose = () => {
-      setTechStatus("Connessione WebSocket [OFFLINE]");
+      setTechStatus("Disconnesso al server");
       console.log("[NETWORK] Canale WebSocket chiuso.");
     }; 
     wsRef.current.onmessage = (event) => {
@@ -236,11 +226,11 @@ export default function App() {
           // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
           if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
             new Audio('/beep.mp3').play();   // Suona il file MP3
-            // Invia dati al server
+            // Invia dati al server;
             wsRef.current?.send(JSON.stringify({
               event: "DROWSINESS_DETECTED",
               variable_x: timeClosed.toFixed(2),
-              location: currentLocationRef.current // Invia anche le coordinate GPS attuali al server per un possibile intervento proattivo
+              location: currentLocationRef.current || { lat: 41.1087, lng: 16.8784 } // Invia anche le coordinate GPS attuali al server per un possibile intervento proattivo
             }));
             lastAlarmTimeRef.current = performance.now();
           }
@@ -302,9 +292,12 @@ export default function App() {
       <header className="mb-8 flex gap-6 justify-between bg-gray-900 p-6 rounded-2xl border border-gray-800">
   
         {/* 1. OGGETTO A SINISTRA: Il Titolo */}
-        <h1 className="p-1 text-center text-3xl font-bold text-blue-400">
-          Driver Monitoring System
-        </h1>
+        <div className="p-1 flex text-center flex-col items-center gap-1">
+            <h1 className="p-1 text-center text-3xl font-bold text-blue-400">
+              Driver Monitoring System
+            </h1>
+            <p className="text-sm text-gray-500 font-medium">{techStatus}</p>
+        </div>
 
         {/* 2. OGGETTO CENTRALE: Safety Score e Stato */}
         <div className="p-1 flex text-center flex-col items-center gap-1">
@@ -376,7 +369,7 @@ export default function App() {
           <div className="p-4 bg-gray-800 rounded-xl">
             <span className="text-gray-500 text-sm uppercase font-bold">Navigazione</span>
             <p className="font-bold mt-1 break-words">
-              {routeSuggestion ? `${routeSuggestion.name}` : "Nessuna deviazione"}
+              {routeSuggestion ? `Il punto di sosta più vicino: ${routeSuggestion.name} (${routeSuggestion.distance_kilometers.toFixed(2)} km)` : "Nessuna deviazione"}
             </p>
               
             {/* Se c'è un suggerimento, mostra il bottone per aprire Maps */}
