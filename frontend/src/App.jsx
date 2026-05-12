@@ -69,11 +69,11 @@ const playAlertBeep = () => {
 // === COMPONENTE PRINCIPALE ===
 export default function App() {
   // Stati UI
-  const [sessionStatus, setSessionStatus] = useState("idle"); // "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
+  const [sessionStatus, setSessionStatus] = useState("started"); // "started" | "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
   const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
   const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
   const [userStatus, setUserStatus] = useState("Pronto per la partenza");  // Stato utente semplificato per l'interfaccia (es. "Pronto", "In Viaggio", "Viaggio Terminato")
-  const [techStatus, setTechStatus] = useState("Sistema React inizializzato. In attesa di input.");  // Stato tecnico dettagliato per debugging (non mostrato all'utente finale, ma utile durante lo sviluppo)
+  const [techStatus, setTechStatus] = useState("Sistema di monitoraggio attivo");  // Stato tecnico dettagliato per debugging (non mostrato all'utente finale, ma utile durante lo sviluppo)
   const [variableX, setVariableX] = useState(0); // Tempo di chiusura occhi in secondi
   const [isSleeping, setIsSleeping] = useState(false);  // Stato di allarme per chiusura occhi
   
@@ -96,7 +96,12 @@ export default function App() {
   const currentLocationRef = useRef({ lat: 41.1087, lng: 16.8784 }); 
   const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
-  // --- FUNZIONE INTERRUTTORE ---
+  if(sessionStatus === "started") {
+    speakText("Benvenuto, io sono il tuo assistente virtuale di guida. Premi il pulsante Inizia Viaggio per attivare il monitoraggio in tempo reale.");
+    setSessionStatus("idle"); // Passa a "idle" dopo il messaggio di benvenuto
+  }
+
+  // --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
   const toggleJourney = () => {
     if (sessionStatus === "idle") {
       // INIZIA IL VIAGGIO
@@ -160,11 +165,12 @@ export default function App() {
       // RESETTA PER UN NUOVO VIAGGIO
       setSessionStatus("idle");
       setSafetyScore(100);
+      setVariableX(0);
+      setAiFeedback("Nessuna anomalia rilevata.");
+      setRouteSuggestion(null);
       // LOGICA A DOPPIO STATUS
       speakText("Premi il pulsante per il monitoraggio in tempo reale");
       setUserStatus("Pronto per la partenza");
- 
-
     }
   };
 
@@ -186,12 +192,13 @@ export default function App() {
       const response = JSON.parse(event.data);
       if (response.type === "PROACTIVE_ASSISTANCE") {
         setAiFeedback(response.voice_text);  // Aggiorna il feedback dell'assistente IA con il testo ricevuto dal server
-        speakText(response.voice_text);
-        setRouteSuggestion(response.maps_route); // Aggiorna la proposta di deviazione con i dati ricevuti dal server (se presenti)
+        setRouteSuggestion(response.maps_route); 
+        speakText(response.voice_text + (response.maps_route ? ` Attenzione, ti suggerisco di fermarti al punto di sosta più vicino: ${response.maps_route.name}, a ${response.maps_route.distance_kilometers.toFixed(2)} chilometri da qui.` : " Non sono state rilevate deviazioni necessarie al momento. Continua a guidare con prudenza."));
         setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Applica la penalità al punteggio di sicurezza, assicurandosi che non scenda sotto 0
         setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni (errori) 
         lastDistractionTime.current = Date.now();  // Aggiorna l'orario dell'ultimo errore
       }
+      
     };
     return () => { if (wsRef.current) wsRef.current.close(); };
   }, [sessionStatus]);
