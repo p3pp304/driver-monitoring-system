@@ -1,5 +1,5 @@
 import os
-import requests
+import httpx
 
 
 # ==========================================
@@ -33,7 +33,7 @@ async def get_nearest_safe_zone(lat: float, lng: float):
 
     try:
         # Effettuiamo la chiamata GET
-        response = requests.get(url, timeout=5)
+        response = httpx.get(url, timeout=5)
         data = response.json()
 
         # Controlliamo se la risposta contiene risultati validi
