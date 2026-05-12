@@ -43,7 +43,7 @@ async def get_nearest_safe_zone(lat: float, lng: float):
             "name": "Area sosta d'emergenza",
             "lat": lat + 0.005,
             "lng": lng + 0.005,
-            "distance_kilometers": 2,
+            "distance_kilometers": 1,
             "minuti_stimati": 5,
             "success": False
         }
@@ -59,7 +59,7 @@ async def get_nearest_safe_zone(lat: float, lng: float):
         poi_lng = properties.get("lon")
         
         # Geoapify calcola già la distanza lineare in metri dalla posizione del conducente
-        distance_meters = properties.get("distance", 0)
+        distance_meters = properties.get("distance", 1000)  # Default a 1 km se non fornito)
         
         # Stima dei minuti (assumendo una velocità media di circa 40 km/h in zone urbane/extraurbane)
         # 40 km/h = ~666 metri al minuto
@@ -84,7 +84,7 @@ async def get_nearest_safe_zone(lat: float, lng: float):
             "name": "Area sosta d'emergenza",
             "lat": lat + 0.005,
             "lng": lng + 0.005,
-            "distance_kilometers": 2,
+            "distance_kilometers": 1,
             "minuti_stimati": 5,
             "success": False
         }
