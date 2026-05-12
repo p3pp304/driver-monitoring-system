@@ -2,6 +2,29 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 from datetime import datetime
 from gemini_service import genera_assistenza_vocale
+from maps_service import get_nearest_safe_zone
+
+def calculate_smart_penalty(var_x):
+    global last_event_time
+    now = datetime.now()
+    
+    # 1. Penalità base proporzionale alla durata
+    if (float(var_x) < 1.5):
+        base_penalty = 5
+    elif (float(var_x) < 3.0):
+        base_penalty = 10
+    else:
+        base_penalty = 20
+
+    # 2. Controllo recidività (entro 1 minuto)
+    multiplier = 1.0
+    if last_event_time and (now - last_event_time).seconds < 60:
+        multiplier = 2.0  # Raddoppia la penalità se è recidivo
+        if (now - last_event_time).seconds < 30:
+            multiplier = 3.0  # Triplica se è molto recidivo
+    last_event_time = now
+    return base_penalty * multiplier # Punti da sottrarre al Safety Score
+
 
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI()   
@@ -39,46 +62,20 @@ async def websocket_endpoint(websocket: WebSocket):
             # 2. Controllo dell'evento ricevuto
             if payload.get("event") == "DROWSINESS_DETECTED":
                 var_x = payload.get("variable_x")
-                print(f"🚨 ALLARME RICEVUTO! Il conducente ha chiuso gli occhi per {var_x} secondi.")
+                location = payload.get("location", {"lat": 41.1087, "lng": 16.8784})
+                print(f"🚨 ALLARME RICEVUTO! Il conducente ha chiuso gli occhi per {var_x} secondi | Posizione: {location['lat']}, {location['lng']}")
                 
                 # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
                 
                 ai_response = await genera_assistenza_vocale(var_x)
-            
-                maps_suggestion = {
-                    "name": "Area di Sosta 'La Macchia' (A14)",
-                    "distance": "3", # minuti di deviazione
-                    "lat": 41.1234,
-                    "lng": 16.5678
-                }
-
-                def calculate_smart_penalty(var_x):
-                    global last_event_time
-                    now = datetime.now()
-                    
-                    # 1. Penalità base proporzionale alla durata
-                    if (float(var_x) < 1.5):
-                        base_penalty = 5
-                    elif (float(var_x) < 3.0):
-                        base_penalty = 10
-                    else:
-                        base_penalty = 20
-
-                    # 2. Controllo recidività (entro 1 minuto)
-                    multiplier = 1.0
-                    if last_event_time and (now - last_event_time).seconds < 60:
-                        multiplier = 2.0  # Raddoppia la penalità se è recidivo
-                        if (now - last_event_time).seconds < 30:
-                            multiplier = 3.0  # Triplica se è molto recidivo
-                    last_event_time = now
-                    return base_penalty * multiplier # Punti da sottrarre al Safety Score
+                safe_zone = await get_nearest_safe_zone(location["lat"], location["lng"])
                 
                 # 3. Costruzione del pacchetto di "Risoluzione Attiva"
                 penalty_points = calculate_smart_penalty(var_x)
                 risoluzione = {
                     "type": "PROACTIVE_ASSISTANCE",
                     "voice_text": ai_response,
-                    "maps_route": maps_suggestion,
+                    "maps_route": safe_zone,
                     "penalty": penalty_points
                 }
                 

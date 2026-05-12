@@ -91,6 +91,10 @@ export default function App() {
   const lastAlarmTimeRef = useRef(0);
   const lastDistractionTime = useRef(0); // <-- 1. Traccia l'orario dell'ultimo errore
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
+  // --- RIFERIMENTI GPS ---
+  // Coordinate di fallback (es. Politecnico di Bari) in caso di assenza di segnale
+  const currentLocationRef = useRef({ lat: 41.1087, lng: 16.8784 }); 
+  const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
   // --- FUNZIONE INTERRUTTORE ---
   const toggleJourney = () => {
@@ -113,6 +117,28 @@ export default function App() {
       tripStartTimeRef.current = Date.now(); // Fa partire il timer
       lastDistractionTime.current = Date.now(); 
 
+      // --- ACCENSIONE GPS CONTINUO ---
+      if (navigator.geolocation) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (position) => {
+            currentLocationRef.current = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            // Log tecnico opzionale per vedere le coordinate che cambiano
+            // console.log("[GPS] Aggiornamento:", currentLocationRef.current);
+          },
+          (error) => console.warn("[GPS] Errore o segnale perso:", error),
+          { 
+            enableHighAccuracy: true, // Sfrutta l'antenna GPS hardware se disponibile
+            maximumAge: 10000,        // Accetta posizioni vecchie al massimo di 10 secondi
+            timeout: 5000             // Tempo massimo per agganciare il satellite
+          }
+        );
+      } else {
+        console.warn("Geolocalizzazione non supportata dal browser.");
+      }
+
     } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
       setSessionStatus("finished");
@@ -128,6 +154,11 @@ export default function App() {
       setUserStatus("Viaggio Terminato");
       setTechStatus("Disconnessione sensori e calcolo metriche in corso...");
       console.log("[SISTEMA] Viaggio terminato. Chiusura moduli.");
+
+      // --- SPEGNIMENTO GPS ---
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
 
       // Calcola i secondi totali trascorsi dall'inizio
       if (tripStartTimeRef.current) {
@@ -208,7 +239,8 @@ export default function App() {
             // Invia dati al server
             wsRef.current?.send(JSON.stringify({
               event: "DROWSINESS_DETECTED",
-              variable_x: timeClosed.toFixed(2)
+              variable_x: timeClosed.toFixed(2),
+              location: currentLocationRef.current // Invia anche le coordinate GPS attuali al server per un possibile intervento proattivo
             }));
             lastAlarmTimeRef.current = performance.now();
           }
@@ -344,10 +376,21 @@ export default function App() {
           <div className="p-4 bg-gray-800 rounded-xl">
             <span className="text-gray-500 text-sm uppercase font-bold">Navigazione</span>
             <p className="font-bold mt-1 break-words">
-              {routeSuggestion ? `${routeSuggestion.name} (+${routeSuggestion.distance} min)` : "Nessuna deviazione"}
+              {routeSuggestion ? `${routeSuggestion.name}` : "Nessuna deviazione"}
             </p>
+              
+            {/* Se c'è un suggerimento, mostra il bottone per aprire Maps */}
+            {routeSuggestion && routeSuggestion.lat && routeSuggestion.lng && (
+              <a 
+                href={`https://www.google.com/maps/dir/?api=1&destination=${routeSuggestion.lat},${routeSuggestion.lng}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="mt-3 block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition-colors"
+              >
+                Avvia Navigazione
+              </a>
+            )}
           </div>
-
         </div>
       </div>
       )}
