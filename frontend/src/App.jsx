@@ -69,7 +69,7 @@ export default function App() {
   const lastDistractionTime = useRef(0); // <-- 1. Traccia l'orario dell'ultimo errore
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
 
-// --- FUNZIONE INTERRUTTORE ---
+  // --- FUNZIONE INTERRUTTORE ---
   const toggleJourney = () => {
     if (sessionStatus !== "active") {
       // INIZIA IL VIAGGIO
@@ -205,23 +205,42 @@ export default function App() {
  
 
   
-// --- 3. INTERFACCIA MINIMAL ---
+  // --- 3. INTERFACCIA MINIMAL ---
   return (
     <div className="min-h-screen bg-black text-white p-4">
       {/* HEADER */}
       <header className=" mb-5 ">
         <div className='flex justify-between items-center'>
           <h1 className="text-3xl font-bold text-blue-400">Driver Monitoring System</h1>
-          <h2 className={`text-3xl font-bold ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>Score: {safetyScore}</h2>
+          <p className="text-gray-400 mt-1">{status}</p>
         </div>
-        <p className="text-gray-400">{status}</p>
+        <div className="flex justify-between items-center gap-8">
+          <h2 className={`text-3xl font-bold ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
+            Score: {safetyScore}</h2>
+          <p className="text-gray-400">{status}</p>
+          <button 
+            onClick={toggleJourney}
+            className={`font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg ${
+              sessionStatus === "active" ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"
+            }`}
+          >
+            {sessionStatus === "active" ? "Termina Viaggio" : (sessionStatus === "finished" ? "Nuovo Viaggio" : "Inizia Viaggio")}
+          </button>
+        </div>
+        
       </header>
 
-      {/* CONTENITORE PRINCIPALE (Webcam a sinistra, Dati a destra) */}
-      <div className="flex flex-col md:flex-row gap-4 items-start">
+      {/* DASHBOARD (visibile solo se in attesa o in viaggio) */}
+      {sessionStatus !== "finished" && (
+        <div className="flex flex-col md:flex-row gap-4 items-start">
         
         {/* WEBCAM E ALLARME */}
         <div className="relative w-full md:w-2/3 bg-gray-900 aspect-video shrink-0">
+          {sessionStatus === "idle" && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
+              Premi "Inizia Viaggio" per attivare la telecamera
+            </div>
+          )}
           <video ref={videoRef} className="hidden" playsInline></video>
           <canvas 
             ref={canvasRef} 
@@ -263,6 +282,8 @@ export default function App() {
 
         </div>
       </div>
+      )}
     </div>
+    
   );
 }
