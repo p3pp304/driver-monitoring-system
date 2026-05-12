@@ -79,7 +79,6 @@ async def get_nearest_safe_zone(lat: float, lng: float)-> dict:
             "lat": poi_lat,
             "lng": poi_lng,
             "distance_kilometers": distance_kilometers,
-            "minuti_stimati": minuti_stimati,
             "success": True
         }
 
