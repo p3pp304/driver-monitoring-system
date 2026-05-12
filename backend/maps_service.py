@@ -1,3 +1,4 @@
+import os
 import requests
 
 
@@ -5,7 +6,7 @@ import requests
 # 1. CONFIGURAZIONE API
 # ==========================================
 # In produzione, è consigliato inserire questa chiave in un file .env
-GEOAPIFY_API_KEY = "ce6f368f4aab4b6faca8145f1e2ea67b"
+GEOAPIFY_API_KEY = os.environ.get("GEOAPIFY_API_KEY")
 
 # ==========================================
 # 2. LOGICA DI RICERCA (TRAMITE GEOAPIFY)
