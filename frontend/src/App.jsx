@@ -50,7 +50,8 @@ export default function App() {
   const [sessionStatus, setSessionStatus] = useState("idle"); // "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
   const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
   const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
-  const [status, setStatus] = useState("Inizializzazione...");  
+  const [userStatus, setUserStatus] = useState("Pronto per la partenza");  // Stato utente semplificato per l'interfaccia (es. "Pronto", "In Viaggio", "Viaggio Terminato")
+  const [techStatus, setTechStatus] = useState("Sistema React inizializzato. In attesa di input.");  // Stato tecnico dettagliato per debugging (non mostrato all'utente finale, ma utile durante lo sviluppo)
   const [variableX, setVariableX] = useState(0); // Tempo di chiusura occhi in secondi
   const [isSleeping, setIsSleeping] = useState(false);  // Stato di allarme per chiusura occhi
   
@@ -80,24 +81,33 @@ export default function App() {
       setAiFeedback("Nessuna anomalia rilevata.");
       setRouteSuggestion(null);
       setSessionStatus("active");
-      setStatus("Sensori e V2N Attivi");
-      
+      // LOGICA A DOPPIO STATUS
+      setUserStatus("In Viaggio");
+      setTechStatus("Richiesta connessione V2N e avvio MediaPipe...");
+      console.log("[SISTEMA] Avvio sessione di guida. Timestamp:", Date.now());
       tripStartTimeRef.current = Date.now(); // Fa partire il timer
       lastDistractionTime.current = Date.now(); 
+
     } else if (sessionStatus === "active") {
-      // TERMINA IL VIAGGIO
+      // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
       setSessionStatus("finished");
-      setStatus("Viaggio Terminato");
-      
+      setUserStatus("Viaggio Terminato");
+      setTechStatus("Disconnessione sensori e calcolo metriche in corso...");
+      console.log("[SISTEMA] Viaggio terminato. Chiusura moduli.");
+
       // Calcola i secondi totali trascorsi dall'inizio
       if (tripStartTimeRef.current) {
           const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
           setTripDuration(totalSeconds);
       }
     }else if(sessionStatus === "finished") {
-      // RESETA PER UN NUOVO VIAGGIO
+      // RESETTA PER UN NUOVO VIAGGIO
       setSessionStatus("idle");
-      setStatus("In attesa di Inizio Viaggio");
+      setSafetyScore(100);
+      // LOGICA A DOPPIO STATUS
+      setUserStatus("Pronto per una nuova partenza");
+      setTechStatus("Sistema resettato. Idle state.");
+      console.log("[SISTEMA] Reset dell'interfaccia completato.");
 
     }
   };
@@ -108,9 +118,14 @@ export default function App() {
     if (sessionStatus !== "active") return;  // BLOCCO: Ferma tutto se il viaggio non è "active" (ovvero se è "idle" o "finished"). In questo modo, se l'utente preme il pulsante per iniziare il viaggio, allora si stabilisce la connessione WebSocket e si avviano i sensori. Se invece preme per terminare, la connessione si chiude e i sensori si fermano (grazie alla pulizia del useEffect).
 
     wsRef.current = new WebSocket('ws://localhost:8000/ws');  
-    wsRef.current.onopen = () => setStatus("Connesso al Server");  // Quando la connessione è stabilita, aggiorna lo stato per riflettere che siamo connessi
-    wsRef.current.onclose = () => setStatus("Disconnesso"); // Se la connessione si chiude (ad esempio, quando termina il viaggio), aggiorna lo stato per riflettere che siamo disconnessi
-    
+    wsRef.current.onopen = () => {
+      setTechStatus("Connessione WebSocket [ONLINE]");
+      console.log("[NETWORK] Handshake WebSocket completato sulla porta 8000."); 
+    };
+    wsRef.current.onclose = () => {
+      setTechStatus("Connessione WebSocket [OFFLINE]");
+      console.log("[NETWORK] Canale WebSocket chiuso.");
+    }; 
     wsRef.current.onmessage = (event) => {
       const response = JSON.parse(event.data);
       if (response.type === "PROACTIVE_ASSISTANCE") {
@@ -228,7 +243,7 @@ export default function App() {
             <h2 className={`text-3xl font-black ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
               Score: {safetyScore}
             </h2>
-            <p className="text-sm text-gray-500 font-medium">{status}</p>
+            <p className="text-sm text-gray-500 font-medium">{userStatus}</p>
         </div>
 
         {/* 3. OGGETTO A DESTRA: Bottone */}
@@ -254,7 +269,7 @@ export default function App() {
         {/* WEBCAM E ALLARME */}
         <div className="relative w-full md:w-2/3 bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           {sessionStatus === "idle" && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
+            <div className="p-4 absolute inset-0 z-10 flex items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
               Premi "Inizia Viaggio" per attivare la telecamera
             </div>
           )}
