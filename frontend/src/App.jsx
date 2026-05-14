@@ -119,14 +119,6 @@ export default function App() {
     else speakText("Viaggio terminato. Punteggio molto basso. Presta maggiore attenzione alla guida per la tua sicurezza.");
   };
 
-
-  // --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
-  if (sessionStatus === "started") {
-    // PREPARA IL SISTEMA (STATO INIZIALE)
-    setSessionStatus("idle");
-    speakText("Benvenuto, io sono il tuo assistente di guida. Premi il pulsante Inizia Viaggio per iniziare il monitoraggio in tempo reale.");
-  }
-
   const toggleJourney = () => {
     if (sessionStatus === "idle") {
         // INIZIA IL VIAGGIO
