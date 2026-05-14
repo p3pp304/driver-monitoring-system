@@ -1,21 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Camera } from '@mediapipe/camera_utils';
-import { 
-  calculate_ear, 
-  speakText, 
-  formatTime, 
-  playAlertBeep, 
-  LEFT_EYE, 
-  RIGHT_EYE, 
-  EAR_THRESHOLD, 
-  X_SLEEP_THRESHOLD 
-} from './utils/helpers';
+import React, { useState, useRef } from 'react';
+import Navbar from './components/Navbar';
 
-// --- INIZIALIZZAZIONE MEDIA PIPE ---
-// Utilizziamo FaceMesh per estrarre 468 landmark facciali in tempo reale.
-// refine_landmarks=True migliora la precisione attorno a occhi e labbra
 
+// Importa gli Hook e le Utility
+import { useDmsWebSocket } from './hooks/useDmsWebSocket';
+import { useMediaPipe } from './hooks/useMediaPipe';
+import { speakText, formatTime } from './utils/helpers';
 
 // === COMPONENTE PRINCIPALE ===
 export default function App() {
@@ -24,11 +14,6 @@ export default function App() {
   const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
   const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
   const [userStatus, setUserStatus] = useState("Pronto per la partenza");  // Stato utente semplificato per l'interfaccia (es. "Pronto", "In Viaggio", "Viaggio Terminato")
-  const [techStatus, setTechStatus] = useState("Sistema di monitoraggio attivo");  // Stato tecnico dettagliato per debugging (non mostrato all'utente finale, ma utile durante lo sviluppo)
-  const [variableX, setVariableX] = useState(0); // Tempo di chiusura occhi in secondi
-  const [isSleeping, setIsSleeping] = useState(false);  // Stato di allarme per chiusura occhi
-  
-  // Stati Proattivi
   const [safetyScore, setSafetyScore] = useState(100);
   const [aiFeedback, setAiFeedback] = useState("Nessuna anomalia rilevata.");
   const [routeSuggestion, setRouteSuggestion] = useState(null); 
@@ -36,11 +21,6 @@ export default function App() {
   // Riferimenti
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const wsRef = useRef(null);
-  const cameraRef = useRef(null);
-  const closedStartTimeRef = useRef(null);
-  const lastAlarmTimeRef = useRef(0);
-  const lastDistractionTime = useRef(0); // <-- 1. Traccia l'orario dell'ultimo errore
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
   // --- RIFERIMENTI GPS ---
   // Coordinate di fallback (es. Politecnico di Bari) in caso di assenza di segnale
@@ -48,117 +28,18 @@ export default function App() {
   const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
 
+// ---INTEGRAZIONE HOOKS PERSONALIZZATI ---
 
-      // Calcola i secondi totali trascorsi dall'inizio
-      if (tripStartTimeRef.current) {
-          const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
-          setTripDuration(totalSeconds);
-      }
-    }else if(sessionStatus === "finished") {
-      // RESETTA PER UN NUOVO VIAGGIO
-      setSessionStatus("idle");
-      setSafetyScore(100);
-      setVariableX(0);
-      setAiFeedback("Nessuna anomalia rilevata.");
-      setRouteSuggestion(null);
-      // LOGICA A DOPPIO STATUS
-      speakText("Premi il pulsante per il monitoraggio in tempo reale");
-      setUserStatus("Pronto per la partenza");
-    }
-  };
+// 1. WebSocket per comunicazione con il server FastAPI
+const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (data) => {
+    // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
+    setAiFeedback(data.voice_text);
+    setRouteSuggestion(data.nearest_rest_stop);
+    setSafetyScore(prev => Math.max(0, prev - 10)); // Penalità di 10 punti per ogni distrazione rilevata
+    setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
+    speakText(data.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
+});
 
-  // --- 1. WEBSOCKET ---
-  useEffect(() => {   // Stabilisce la connessione WebSocket al backend FastAPI; viene eseguito una sola volta all'avvio di App
-    
-    if (sessionStatus !== "active") return;  // BLOCCO: Ferma tutto se il viaggio non è "active" (ovvero se è "idle" o "finished"). In questo modo, se l'utente preme il pulsante per iniziare il viaggio, allora si stabilisce la connessione WebSocket e si avviano i sensori. Se invece preme per terminare, la connessione si chiude e i sensori si fermano (grazie alla pulizia del useEffect).
-
-    wsRef.current = new WebSocket('ws://localhost:8000/ws');  
-    wsRef.current.onopen = () => {
-      setTechStatus("Connesso al server");
-      console.log("[NETWORK] Handshake WebSocket completato sulla porta 8000."); 
-    };
-    wsRef.current.onclose = () => {
-      setTechStatus("Disconnesso al server");
-      console.log("[NETWORK] Canale WebSocket chiuso.");
-    }; 
-    wsRef.current.onmessage = (event) => {
-      const response = JSON.parse(event.data);
-      if (response.type === "PROACTIVE_ASSISTANCE") {
-        setAiFeedback(response.voice_text);  // Aggiorna il feedback dell'assistente IA con il testo ricevuto dal server
-        setRouteSuggestion(response.maps_route); 
-        speakText(response.voice_text + (response.maps_route ? ` Attenzione, ti suggerisco di fermarti al punto di sosta più vicino: ${response.maps_route.name}, a ${response.maps_route.distance_kilometers.toFixed(2)} chilometri da qui.` : " Non sono state rilevate deviazioni necessarie al momento. Continua a guidare con prudenza."));
-        setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Applica la penalità al punteggio di sicurezza, assicurandosi che non scenda sotto 0
-        setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni (errori) 
-        lastDistractionTime.current = Date.now();  // Aggiorna l'orario dell'ultimo errore
-      }
-      
-    };
-    return () => { if (wsRef.current) wsRef.current.close(); };
-  }, [sessionStatus]);
-
-    // --- 2. MEDIAPIPE (EDGE COMPUTING) ---
-  useEffect(() => {
-    if (!videoRef.current || !canvasRef.current) return; // Sicurezza: se i riferimenti alla webcam o al canvas non sono pronti, esci dalla funzione
-    const canvasCtx = canvasRef.current.getContext('2d');  // Ottieni il contesto 2D del canvas per poter disegnare sopra la webcam
-
-    const faceMesh = new FaceMesh({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-    });
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });  //
-
-    faceMesh.onResults((results) => {
-      // Disegna la webcam e i landmark (se presenti)
-      canvasCtx.clearRect(0, 0, 1280, 720);
-      if (results.image) canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
-      
-      if (results.multiFaceLandmarks?.[0]) {    // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
-        const landmarks = results.multiFaceLandmarks[0];
-        const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
-
-        if (ear < EAR_THRESHOLD && sessionStatus === "active") {  // Se l'EAR è sotto la soglia e siamo in viaggio, considera gli occhi chiusi{
-          if (!closedStartTimeRef.current) {
-           closedStartTimeRef.current = performance.now();}
-          
-          const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;  // tempo da millisecondi a secondi
-          setVariableX(timeClosed.toFixed(2));
-          setIsSleeping(true);
-          
-          // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
-          if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
-            new Audio('/beep.mp3').play();   // Suona il file MP3
-            // Invia dati al server;
-            wsRef.current?.send(JSON.stringify({
-              event: "DROWSINESS_DETECTED",
-              variable_x: timeClosed.toFixed(2),
-              location: currentLocationRef.current || { lat: 41.1087, lng: 16.8784 } // Invia anche le coordinate GPS attuali al server per un possibile intervento proattivo
-            }));
-            lastAlarmTimeRef.current = performance.now();
-          }
-        } else {
-          // Azzera tutto se apre gli occhi
-          closedStartTimeRef.current = null;
-          setVariableX(0);
-          setIsSleeping(false);
-        }
-      }
-    });
-
-    // Avvia Webcam
-    cameraRef.current = new Camera(videoRef.current, {
-      onFrame: async () => await faceMesh.send({ image: videoRef.current }),
-      width: 1280, height: 720
-    });
-    cameraRef.current.start();
-
-    // Pulizia allo spegnimento
-    return () => {
-      if (cameraRef.current) cameraRef.current.stop();
-      if (wsRef.current) wsRef.current.close();
-      faceMesh.close();
-    };
-  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
-
-  // --- 3. IL TIMER DEL BONUS ---
   useEffect(() => {
     if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
     const bonusInterval = setInterval(() => {
