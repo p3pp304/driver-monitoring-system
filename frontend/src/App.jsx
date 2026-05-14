@@ -112,11 +112,21 @@ export default function App() {
   };
 
     // Feedback finale a fine viaggio basato sul punteggio di sicurezza
-  const playEndJourneyFeedback = (score) => {
-    if (score >= 90) speakText("Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato.");
-    else if (score >= 70) speakText("Viaggio terminato. Buon lavoro, ma cerca di evitare distrazioni per un punteggio più alto.");
-    else if (score >= 40) speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso.");
-    else speakText("Viaggio terminato. Punteggio molto basso. Presta maggiore attenzione alla guida per la tua sicurezza.");
+  const playEndJourneyFeedback = (score, distractionCount) => {
+    const intro = "Viaggio terminato. ";
+    let messaggio = "";
+
+    if (x >= 90) {
+        messaggio = "Guida eccellente. Hai mantenuto un livello di attenzione ottimale per tutto il tragitto. Ottimo lavoro.";
+    } else if (x >= 70) {
+        messaggio = "Buona guida, ma c'è margine di miglioramento. Cerca di ridurre le distrazioni minori per mantenere sempre la massima concentrazione.";
+    } else if (x >= 40) {
+        messaggio = `Attenzione: ho rilevato ${distractionCount} distrazioni durante il percorso. Ti invito a mantenere sempre lo sguardo sulla strada per viaggiare in totale sicurezza.`;
+    } else {
+        messaggio = `Livello di attenzione critico. Sono state registrate ben ${distractionCount} distrazioni o segni di sonnolenza. Per la tua incolumità, ti consiglio di fare una pausa prima del prossimo viaggio.`;
+    }
+
+    speakText(intro + messaggio);
   };
 
   const toggleJourney = () => {
@@ -139,7 +149,7 @@ export default function App() {
   } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
       setSessionStatus("finished");
-      playEndJourneyFeedback(safetyScore);
+      playEndJourneyFeedback(safetyScore, distractionCount);
       setUserStatus("Viaggio Terminato");
       stopGPSMonitoring(); // Spegne il GPS a fine viaggio
       // Calcola i secondi totali trascorsi dall'inizio
