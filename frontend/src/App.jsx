@@ -50,8 +50,76 @@ const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatu
     }); 
 });
 
+//FUNZIONI DI SUPPORTO(a toggleJourney)
+
+// Accensione e spegnimento GPS (per monitoraggio continuo durante il viaggio)
+const startGPSMonitoring = () => {
+    if (navigator.geolocation) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => currentLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      );
+    }
+  };
+
+  const stopGPSMonitoring = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current); // 
+      watchIdRef.current = null; 
+    }
+  };
+
+  // Feedback finale a fine viaggio basato sul punteggio di sicurezza
+const playEndJourneyFeedback = (score) => {
+  if (score >= 90) speakText("Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato.");
+  else if (score >= 70) speakText("Viaggio terminato. Buon lavoro, ma cerca di evitare distrazioni per un punteggio più alto.");
+  else if (score >= 40) speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso.");
+  else speakText("Viaggio terminato. Punteggio molto basso. Presta maggiore attenzione alla guida per la tua sicurezza.");
+};
 
 
+// --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
+const toggleJourney = () => {
+    if (sessionStatus === "idle") {
+        // INIZIA IL VIAGGIO
+        setSafetyScore(100);
+        setDistractionCount(0);
+        setVariableX(0);
+        setTripDuration(0);
+        setAiFeedback("Nessuna anomalia rilevata.");
+        setRouteSuggestion(null);
+        setSessionStatus("active");
+        // LOGICA A DOPPIO STATUS
+        setUserStatus("In Viaggio");
+        
+        speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
+
+        tripStartTimeRef.current = Date.now(); // Fa partire il timer
+        lastDistractionTime.current = Date.now(); 
+        startGPSMonitoring(); // Accende il GPS
+
+} else if (sessionStatus === "active") {
+    // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
+    setSessionStatus("finished");
+    playEndJourneyFeedback(safetyScore);
+    setUserStatus("Viaggio Terminato");
+    stopGPSMonitoring(); // Spegne il GPS a fine viaggio
+    // Calcola i secondi totali trascorsi dall'inizio
+    if (tripStartTimeRef.current) {
+        const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
+        setTripDuration(totalSeconds);
+    }
+}else if(sessionStatus === "finished") {
+    // RESETTA PER UN NUOVO VIAGGIO
+    setSessionStatus("idle");
+    setSafetyScore(100);
+    setVariableX(0);
+    setAiFeedback("Nessuna anomalia rilevata.");
+    setRouteSuggestion(null);
+    // LOGICA A DOPPIO STATUS
+    speakText("Premi il pulsante per il monitoraggio in tempo reale");
+    setUserStatus("Pronto per la partenza");
+}
+};
 
 
 
