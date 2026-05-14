@@ -6,7 +6,7 @@ export default function VideoMonitor({ videoRef, canvasRef, isSleeping, variable
     return (
         <div className="relative w-full md:w-2/3 bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
 
-            {sessionStatus === "idle" && (
+            {(sessionStatus === "idle" || sessionStatus === "started") && (
                 <div className="p-2 absolute inset-0 z-10 flex flex-col  text-center items-center justify-center bg-gray-900 text-gray-500 text-2xl font-bold">
                     Premi  "Inizia Viaggio" per il monitoraggio in tempo reale
                 </div>

@@ -34,28 +34,28 @@ export default function App() {
   const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
 
-// ---3. HOOKS PERSONALIZZATI---
+  // ---3. HOOKS PERSONALIZZATI---
 
-    // 1. WebSocket per comunicazione con il server FastAPI
-const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
-    // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
-    setAiFeedback(response.voice_text);
-    setRouteSuggestion(response.nearest_rest_stop);
-    setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
-    setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
-    lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
-    speakText(response.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
-});
+      // 1. WebSocket per comunicazione con il server FastAPI
+  const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
+      // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
+      setAiFeedback(response.voice_text);
+      setRouteSuggestion(response.nearest_rest_stop);
+      setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
+      setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
+      lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
+      speakText(response.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
+  });
 
-    // 2. MediaPipe per il monitoraggio in tempo reale del conducente
-const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
-    // Invia un messaggio al server per notificare l'allarme di sonnolenza
-  sendWsMessage({ 
-      event: "DROWSINESS_ALERT", 
-      variable_x: timeClosed,
-      location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
-    }); 
-});
+      // 2. MediaPipe per il monitoraggio in tempo reale del conducente
+  const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
+      // Invia un messaggio al server per notificare l'allarme di sonnolenza
+    sendWsMessage({ 
+        event: "DROWSINESS_ALERT", 
+        variable_x: timeClosed,
+        location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
+      }); 
+  });
 
 // --- 4. LOGICA DEL BONUS (IL TUO CODICE) ---
   useEffect(() => {
@@ -82,10 +82,10 @@ const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatu
   }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
 
 
-//FUNZIONI DI SUPPORTO(a toggleJourney)
+  //FUNZIONI DI SUPPORTO(a toggleJourney)
 
-// Accensione e spegnimento GPS (per monitoraggio continuo durante il viaggio)
-const startGPSMonitoring = () => {
+  // Accensione e spegnimento GPS (per monitoraggio continuo durante il viaggio)
+  const startGPSMonitoring = () => {
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => currentLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }
@@ -100,58 +100,63 @@ const startGPSMonitoring = () => {
     }
   };
 
-  // Feedback finale a fine viaggio basato sul punteggio di sicurezza
-const playEndJourneyFeedback = (score) => {
-  if (score >= 90) speakText("Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato.");
-  else if (score >= 70) speakText("Viaggio terminato. Buon lavoro, ma cerca di evitare distrazioni per un punteggio più alto.");
-  else if (score >= 40) speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso.");
-  else speakText("Viaggio terminato. Punteggio molto basso. Presta maggiore attenzione alla guida per la tua sicurezza.");
-};
+    // Feedback finale a fine viaggio basato sul punteggio di sicurezza
+  const playEndJourneyFeedback = (score) => {
+    if (score >= 90) speakText("Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato.");
+    else if (score >= 70) speakText("Viaggio terminato. Buon lavoro, ma cerca di evitare distrazioni per un punteggio più alto.");
+    else if (score >= 40) speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso.");
+    else speakText("Viaggio terminato. Punteggio molto basso. Presta maggiore attenzione alla guida per la tua sicurezza.");
+  };
 
 
-// --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
-const toggleJourney = () => {
+  // --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
+  if (sessionStatus === "started") {
+    // PREPARA IL SISTEMA (STATO INIZIALE)
+    setSessionStatus("idle");
+    speakText("Benvenuto, io sono il tuo assistente di guida. Premi il pulsante Inizia Viaggio per iniziare il monitoraggio in tempo reale.");
+  }
+
+  const toggleJourney = () => {
     if (sessionStatus === "idle") {
         // INIZIA IL VIAGGIO
         setSafetyScore(100);
         setDistractionCount(0);
-        setVariableX(0);F
+        setVariableX(0);
         setTripDuration(0);
         setAiFeedback("Nessuna anomalia rilevata.");
         setRouteSuggestion(null);
         setSessionStatus("active");
         // LOGICA A DOPPIO STATUS
         setUserStatus("In Viaggio");
-        
         speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
 
         tripStartTimeRef.current = Date.now(); // Fa partire il timer
         lastDistractionTime.current = Date.now(); 
         startGPSMonitoring(); // Accende il GPS
 
-} else if (sessionStatus === "active") {
-    // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
-    setSessionStatus("finished");
-    playEndJourneyFeedback(safetyScore);
-    setUserStatus("Viaggio Terminato");
-    stopGPSMonitoring(); // Spegne il GPS a fine viaggio
-    // Calcola i secondi totali trascorsi dall'inizio
-    if (tripStartTimeRef.current) {
-        const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
-        setTripDuration(totalSeconds);
-    }
-}else if(sessionStatus === "finished") {
-    // RESETTA PER UN NUOVO VIAGGIO
-    setSessionStatus("idle");
-    setSafetyScore(100);
-    setVariableX(0);
-    setAiFeedback("Nessuna anomalia rilevata.");
-    setRouteSuggestion(null);
-    // LOGICA A DOPPIO STATUS
-    speakText("Premi il pulsante per il monitoraggio in tempo reale");
-    setUserStatus("Pronto per la partenza");
-}
-};
+  } else if (sessionStatus === "active") {
+      // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
+      setSessionStatus("finished");
+      playEndJourneyFeedback(safetyScore);
+      setUserStatus("Viaggio Terminato");
+      stopGPSMonitoring(); // Spegne il GPS a fine viaggio
+      // Calcola i secondi totali trascorsi dall'inizio
+      if (tripStartTimeRef.current) {
+          const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
+          setTripDuration(totalSeconds);
+      }
+  }else if(sessionStatus === "finished") {
+      // RESETTA PER UN NUOVO VIAGGIO
+      setSessionStatus("idle");
+      setSafetyScore(100);
+      setVariableX(0);
+      setAiFeedback("Nessuna anomalia rilevata.");
+      setRouteSuggestion(null);
+      // LOGICA A DOPPIO STATUS
+      speakText("Premi il pulsante per il monitoraggio in tempo reale");
+      setUserStatus("Pronto per la partenza");
+  }
+  };
   
   // --- 3. INTERFACCIA MINIMAL ---
   return (
