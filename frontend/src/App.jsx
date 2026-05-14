@@ -9,7 +9,7 @@ import SummaryScreen from './components/SummaryScreen';
 // Importa gli Hook e le funzioni utils
 import { useDmsWebSocket } from './hooks/useDmsWebSocket';
 import { useMediaPipe } from './hooks/useMediaPipe';
-import { speakText, formatTime } from './utils/helpers';
+import { speakText} from './utils/helpers';
 
 // === COMPONENTE PRINCIPALE ===
 
@@ -27,7 +27,7 @@ export default function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
-  const lastDistractionTimeRef = useRef(null); // <-- Riferimento per l'ultimo errore (usato per bonus di sicurezza)
+  const lastDistractionTime = useRef(null); // <-- Riferimento per l'ultimo errore (usato per bonus di sicurezza)
   // riferimenti GPS 
   // Coordinate di fallback (es. Politecnico di Bari) in caso di assenza di segnale
   const currentLocationRef = useRef({ lat: 41.1087, lng: 16.8784 }); 
