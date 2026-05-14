@@ -1,70 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaceMesh } from '@mediapipe/face_mesh';
 import { Camera } from '@mediapipe/camera_utils';
+import { 
+  calculate_ear, 
+  speakText, 
+  formatTime, 
+  playAlertBeep, 
+  LEFT_EYE, 
+  RIGHT_EYE, 
+  EAR_THRESHOLD, 
+  X_SLEEP_THRESHOLD 
+} from './utils/helpers';
 
 // --- INIZIALIZZAZIONE MEDIA PIPE ---
 // Utilizziamo FaceMesh per estrarre 468 landmark facciali in tempo reale.
 // refine_landmarks=True migliora la precisione attorno a occhi e labbra
 
-// Indici topologici degli occhi secondo la documentazione di MediaPipe
-const LEFT_EYE = [362, 385, 387, 263, 373, 390]
-const RIGHT_EYE = [33, 160, 158, 133, 153, 144]
-const EAR_THRESHOLD = 0.2  //Soglia empirica sotto la quale l'occhio è considerato chiuso
-const X_SLEEP_THRESHOLD = 0.8; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
-
-function calculate_ear(landmarks, eye_indices) {
-    /*Calcola l'Eye Aspect Ratio (EAR).
-    Rapporto tra l'apertura verticale e orizzontale dell'occhio.
-    Utilizza la distanza euclidea tra i tensori (landmark) spaziali.
-    */    
-    //Funzione di supporto rapida per estrarre le coordinate x,y e calcolare la distanza
-    function d(i, j) {
-        const p1 = landmarks[eye_indices[i]];
-        const p2 = landmarks[eye_indices[j]];
-        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    }
-
-    //v1 e v2 sono le distanze verticali, h è la distanza orizzontale
-    const v1 = d(1, 5);
-    const v2 = d(2, 4);
-    const h = d(0, 3);
-
-    return (v1 + v2) / (2.0 * h)
-}
-
-// --- FUNZIONE TEXT-TO-SPEECH ---
-const speakText = (text) => {
-  // Verifica che il browser supporti la funzione
-  if ('speechSynthesis' in window) {
-    // 1. Ferma eventuali frasi precedenti ancora in riproduzione
-    window.speechSynthesis.cancel();
-
-    // 2. Prepara la frase da leggere
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // 3. Configura la voce
-    utterance.lang = 'it-IT'; // Imposta la pronuncia in italiano
-    utterance.rate = 1.2;     // Velocità di lettura (da 0.1 a 10)
-    utterance.pitch = 0;    // Tono della voce (da 0 a 2)
-    
-    // 4. Riproduci l'audio
-    window.speechSynthesis.speak(utterance);
-  } else {
-    console.warn("Sintesi vocale non supportata in questo browser.");
-  }
-};
-
-// Funzione per formattare i secondi in Minuti:Secondi
-const formatTime = (totalSeconds) => {
-    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); //    Math.floor--> "arrotondare per difetto" tagliando via i decimali
-    const s = (totalSeconds % 60).toString().padStart(2, '0');   // Modulo (%) --> calcolare il resto di una divisione. 125 diviso 60 fa 2, con il resto di 5.  .padStart(2, '0') --> "Se il numero ha meno di due cifre, mettici uno zero davanti". Quindi il 2 diventa "02"
-    return `${m}m ${s}s`;
-};
-
-const playAlertBeep = () => {
-    const audio = new Audio('/beep.mp3');
-    audio.play();
-};
 
 // === COMPONENTE PRINCIPALE ===
 export default function App() {
@@ -96,65 +47,7 @@ export default function App() {
   const currentLocationRef = useRef({ lat: 41.1087, lng: 16.8784 }); 
   const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
-  if(sessionStatus === "started") {
-    speakText("Benvenuto, io sono il tuo assistente virtuale di guida. Premi il pulsante Inizia Viaggio per attivare il monitoraggio in tempo reale.");
-    setSessionStatus("idle"); // Passa a "idle" dopo il messaggio di benvenuto
-  }
 
-  // --- FUNZIONE INTERRUTTORE (IMPORTANTE) ---
-  const toggleJourney = () => {
-    if (sessionStatus === "idle") {
-      // INIZIA IL VIAGGIO
-      setSafetyScore(100);
-      setDistractionCount(0);
-      setVariableX(0);
-      setTripDuration(0);
-      setAiFeedback("Nessuna anomalia rilevata.");
-      setRouteSuggestion(null);
-      setSessionStatus("active");
-      // LOGICA A DOPPIO STATUS
-      setUserStatus("In Viaggio");
-      
-      speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
-
-      tripStartTimeRef.current = Date.now(); // Fa partire il timer
-      lastDistractionTime.current = Date.now(); 
-
-      // --- ACCENSIONE GPS CONTINUO ---
-      if (navigator.geolocation) {
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          (position) => {
-            currentLocationRef.current = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-          },
-          (error) => {
-            console.error("Errore nel rilevamento della posizione:", error);
-          }
-        );
-      } else {
-        console.warn("Geolocalizzazione non supportata dal browser.");
-      } 
-
-    } else if (sessionStatus === "active") {
-      // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
-      setSessionStatus("finished");
-      if (safetyScore >= 90) {
-        speakText(" Viaggio terminato. Ottimo lavoro, hai mantenuto un punteggio di sicurezza elevato durante la guida.");
-      } else if (safetyScore >= 70) {
-        speakText("Viaggio terminato. Buon lavoro, ma c'è margine di miglioramento. Cerca di evitare distrazioni per mantenere un punteggio più alto.");
-      } else if (safetyScore >= 40) {
-        speakText("Viaggio terminato. Attenzione, il tuo punteggio di sicurezza è basso. Cerca di mantenere la concentrazione alla guida per migliorare la tua sicurezza.");
-      }else {
-        speakText("Viaggio terminato. Il tuo punteggio di sicurezza è molto basso. Ti consigliamo in futuro di evitare distrazioni e di prestare maggiore attenzione alla guida per la tua sicurezza e quella degli altri.");
-      }
-      setUserStatus("Viaggio Terminato");
-
-      // --- SPEGNIMENTO GPS ---
-      if (watchIdRef.current) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
 
       // Calcola i secondi totali trascorsi dall'inizio
       if (tripStartTimeRef.current) {
