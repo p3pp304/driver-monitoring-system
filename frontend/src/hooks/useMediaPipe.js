@@ -36,27 +36,27 @@ export const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });  //
 
         faceMesh.onResults((results) => {
-                // Disegna la webcam e i landmark (se presenti)
-                canvasCtx.clearRect(0, 0, 1280, 720);
-                if (results.image) canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
-                
-                if (results.multiFaceLandmarks?.[0]) {    // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
-                    const landmarks = results.multiFaceLandmarks[0];
-                    const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
+            // Disegna la webcam e i landmark (se presenti)
+            canvasCtx.clearRect(0, 0, 1280, 720);
+            if (results.image) canvasCtx.drawImage(results.image, 0, 0, 1280, 720);
+            
+            if (results.multiFaceLandmarks?.[0]) {    // [0] perché stiamo monitorando solo un volto (il conducente); '?.' per sicurezza non blocca il programma se non rileva volti
+                const landmarks = results.multiFaceLandmarks[0];
+                const ear = (calculate_ear(landmarks, LEFT_EYE) + calculate_ear(landmarks, RIGHT_EYE)) / 2;
 
-                    if (ear < EAR_THRESHOLD && sessionStatus === "active") {  // Se l'EAR è sotto la soglia e siamo in viaggio, considera gli occhi chiusi{
-                        if (!closedStartTimeRef.current) {
-                        closedStartTimeRef.current = performance.now();}
-                        
-                        const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;  // tempo da millisecondi a secondi
-                        setVariableX(timeClosed.toFixed(2));
-                        setIsSleeping(true);
-                
-                    // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
-                    if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
-                        playAlertBeep(); // Suona un beep di allarme
-                        onAlarm(timeClosed.toFixed(2)); // Passa il tempo di chiusura alla callback in App.jsx per aggiornare lo stato principale e inviare dati al server
-                        lastAlarmTimeRef.current = performance.now();
+                if (ear < EAR_THRESHOLD && sessionStatus === "active") {  // Se l'EAR è sotto la soglia e siamo in viaggio, considera gli occhi chiusi{
+                    if (!closedStartTimeRef.current) {
+                    closedStartTimeRef.current = performance.now();}
+                    
+                    const timeClosed = (performance.now() - closedStartTimeRef.current) / 1000;  // tempo da millisecondi a secondi
+                    setVariableX(timeClosed.toFixed(2));
+                    setIsSleeping(true);
+            
+                // Allarme se il tempo di chiusura supera la soglia e non abbiamo suonato l'allarme negli ultimi 2 secondi (2000ms, per evitare spam)
+                if (timeClosed > X_SLEEP_THRESHOLD && (performance.now() - lastAlarmTimeRef.current > 2000)) {
+                    playAlertBeep(); // Suona un beep di allarme
+                    onAlarm(timeClosed.toFixed(2)); // Passa il tempo di chiusura alla callback in App.jsx per aggiornare lo stato principale e inviare dati al server
+                    lastAlarmTimeRef.current = performance.now();
                 }
                 } else {
                     // Azzera tutto se apre gli occhi

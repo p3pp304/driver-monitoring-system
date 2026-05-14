@@ -21,7 +21,7 @@ export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSu
             <div className="p-4 bg-gray-800 rounded-xl">
                 <span className="text-gray-500 text-sm uppercase font-bold">Navigazione</span>
                 <p className="font-bold mt-1 break-words">
-                    {routeSuggestion ? `Il punto di sosta più vicino: ${routeSuggestion.name} (${routeSuggestion.distance_kilometers.toFixed(2)} km)` : "Nessuna deviazione"}
+                    {routeSuggestion ? `La zona di sosta più vicina: ${routeSuggestion.name} (${routeSuggestion.distance_kilometers.toFixed(2)} km)` : "Nessuna deviazione"}
                 </p>
                 
                 {/* Se c'è un suggerimento, mostra il bottone per aprire Maps */}

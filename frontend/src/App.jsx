@@ -44,7 +44,7 @@ export default function App() {
       setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
       setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
       lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
-      speakText(response.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
+      speakText(response.voice_text + " La zona di sosta più vicina è: " + response.maps_route.name + "a " + response.maps_route.distance_kilometers + " chilometri"); // Il sistema legge ad alta voce il feedback ricevuto + eventuale suggerimento di percorso
   });
 
       // 2. MediaPipe per il monitoraggio in tempo reale del conducente
