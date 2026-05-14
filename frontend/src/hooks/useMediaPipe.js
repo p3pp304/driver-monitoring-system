@@ -10,8 +10,7 @@ import {
     X_SLEEP_THRESHOLD 
 } from '../utils/helpers';
 
-export 
-    const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
+export const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
     const [isSleeping, setIsSleeping] = useState(false);
     const [variableX, setVariableX] = useState(0);
 
@@ -79,7 +78,7 @@ export
             if (cameraRef.current) cameraRef.current.stop();
             faceMesh.close();
         };
-    }, [sessionStatus, videoRef, canvasRef, onAlarm]); 
+    }, [sessionStatus, videoRef, canvasRef]); 
 
     // Ritorna gli stati visivi necessari per la UI
     return { isSleeping, variableX };

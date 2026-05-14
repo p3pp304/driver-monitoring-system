@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 // Import Componenti
-import Navbar from './components/Navbar';
+import Navbar from './components/NavBar';
 import VideoMonitor from './components/VideoMonitor';
 import AlertPanels from './components/AlertPanels';
 import SummaryScreen from './components/SummaryScreen';
@@ -40,7 +40,7 @@ export default function App() {
   const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
       // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
       setAiFeedback(response.voice_text);
-      setRouteSuggestion(response.nearest_rest_stop);
+      setRouteSuggestion(response.maps_route);
       setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
       setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
       lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
@@ -51,7 +51,7 @@ export default function App() {
   const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
       // Invia un messaggio al server per notificare l'allarme di sonnolenza
     sendWsMessage({ 
-        event: "DROWSINESS_ALERT", 
+        event: "DROWSINESS_DETECTED", 
         variable_x: timeClosed,
         location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
       }); 
@@ -124,7 +124,6 @@ export default function App() {
         // INIZIA IL VIAGGIO
         setSafetyScore(100);
         setDistractionCount(0);
-        setVariableX(0);
         setTripDuration(0);
         setAiFeedback("Nessuna anomalia rilevata.");
         setRouteSuggestion(null);
@@ -152,7 +151,6 @@ export default function App() {
       // RESETTA PER UN NUOVO VIAGGIO
       setSessionStatus("idle");
       setSafetyScore(100);
-      setVariableX(0);
       setAiFeedback("Nessuna anomalia rilevata.");
       setRouteSuggestion(null);
       // LOGICA A DOPPIO STATUS

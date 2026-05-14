@@ -37,7 +37,7 @@
         return () => { 
             if (wsRef.current) wsRef.current.close(); 
         };
-    }, [sessionStatus, onDistraction]);
+    }, [sessionStatus]);
 
     // Funzione esposta per permettere ad App.jsx di inviare l'allarme
     const sendWsMessage = (message) => {
