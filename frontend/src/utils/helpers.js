@@ -28,24 +28,24 @@ export function calculate_ear(landmarks, eye_indices) {
 
 // --- FUNZIONE TEXT-TO-SPEECH ---
 export const speakText = (text) => {
-  // Verifica che il browser supporti la funzione
-  if ('speechSynthesis' in window) {
-    // 1. Ferma eventuali frasi precedenti ancora in riproduzione
-    window.speechSynthesis.cancel();
+    // Verifica che il browser supporti la funzione
+    if ('speechSynthesis' in window) {
+        // 1. Ferma eventuali frasi precedenti ancora in riproduzione
+        window.speechSynthesis.cancel();
 
-    // 2. Prepara la frase da leggere
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // 3. Configura la voce
-    utterance.lang = 'it-IT'; // Imposta la pronuncia in italiano
-    utterance.rate = 1.2;     // Velocità di lettura (da 0.1 a 10)
-    utterance.pitch = 0;    // Tono della voce (da 0 a 2)
-    
-    // 4. Riproduci l'audio
-    window.speechSynthesis.speak(utterance);
-  } else {
-    console.warn("Sintesi vocale non supportata in questo browser.");
-  }
+        // 2. Prepara la frase da leggere
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // 3. Configura la voce
+        utterance.lang = 'it-IT'; // Imposta la pronuncia in italiano
+        utterance.rate = 1.2;     // Velocità di lettura (da 0.1 a 10)
+        utterance.pitch = 0;    // Tono della voce (da 0 a 2)
+
+        // 4. Riproduci l'audio
+        window.speechSynthesis.speak(utterance);
+    } else {
+        console.warn("Sintesi vocale non supportata in questo browser.");
+    }
 };
 
 // Funzione per formattare i secondi in Minuti:Secondi
