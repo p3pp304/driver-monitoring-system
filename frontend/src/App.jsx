@@ -36,7 +36,7 @@ export default function App() {
 
 // ---3. HOOKS PERSONALIZZATI---
 
-// 1. WebSocket per comunicazione con il server FastAPI
+    // 1. WebSocket per comunicazione con il server FastAPI
 const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
     // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
     setAiFeedback(response.voice_text);
@@ -47,7 +47,7 @@ const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) 
     speakText(response.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
 });
 
-// 2. MediaPipe per il monitoraggio in tempo reale del conducente
+    // 2. MediaPipe per il monitoraggio in tempo reale del conducente
 const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
     // Invia un messaggio al server per notificare l'allarme di sonnolenza
   sendWsMessage({ 
@@ -56,6 +56,31 @@ const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatu
       location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
     }); 
 });
+
+// --- 4. LOGICA DEL BONUS (IL TUO CODICE) ---
+  useEffect(() => {
+    if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
+    const bonusInterval = setInterval(() => {
+      const now = Date.now();
+      // Calcola i secondi passati dall'ultimo errore
+      const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
+
+      // Se sono passati 600 secondi (10 minuti)
+      if (secondsSinceLast >= 600) {
+        setSafetyScore(prev => {
+          if (prev < 100) {
+            return Math.min(100, prev + 5);
+          }
+          return prev;
+        });
+        
+        // Resetta il timer
+        lastDistractionTime.current = Date.now();
+      }
+    }, 1000); // Il controllo scatta ogni secondo
+    return () => clearInterval(bonusInterval);
+  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
+
 
 //FUNZIONI DI SUPPORTO(a toggleJourney)
 
@@ -127,34 +152,6 @@ const toggleJourney = () => {
     setUserStatus("Pronto per la partenza");
 }
 };
-
-
-
-  useEffect(() => {
-    if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
-    const bonusInterval = setInterval(() => {
-      const now = Date.now();
-      // Calcola i secondi passati dall'ultimo errore
-      const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
-
-      // Se sono passati 600 secondi (10 minuti)
-      if (secondsSinceLast >= 600) {
-        setSafetyScore(prev => {
-          if (prev < 100) {
-            return Math.min(100, prev + 5);
-          }
-          return prev;
-        });
-        
-        // Resetta il timer
-        lastDistractionTime.current = Date.now();
-      }
-    }, 1000); // Il controllo scatta ogni secondo
-    return () => clearInterval(bonusInterval);
-  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
-
- 
-
   
   // --- 3. INTERFACCIA MINIMAL ---
   return (
