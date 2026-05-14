@@ -57,7 +57,18 @@ export default function App() {
       }); 
   });
 
-// --- 4. LOGICA DEL BONUS (IL TUO CODICE) ---
+  // --- 4. LOGICA DI BENVENUTO INIZIALE ---
+  useEffect(() => {
+    if (sessionStatus === "started") {
+      // Il sistema parla solo una volta all'avvio
+      speakText("Benvenuto, io sono il tuo assistente virtuale di guida. Premi il pulsante Inizia Viaggio per attivare il monitoraggio in tempo reale.");
+      
+      // Passa immediatamente allo stato di attesa
+      setSessionStatus("idle");
+    }
+  }, [sessionStatus]);
+
+// --- 5. LOGICA DEL BONUS ---
   useEffect(() => {
     if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
     const bonusInterval = setInterval(() => {
