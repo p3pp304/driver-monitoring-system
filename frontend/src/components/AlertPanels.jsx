@@ -1,7 +1,7 @@
-import react from "react";
+import React from "react";
 
 {/* PANNELLI DATI */}
-export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSuggestions }) {
+export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSuggestion }) {
     return (
         <div className="w-full md:w-1/3 flex flex-col gap-4 text-lg">
           

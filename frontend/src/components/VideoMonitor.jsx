@@ -1,4 +1,4 @@
-import react from "react";
+import React from "react";
 import {X_SLEEP_THRESHOLD} from "../utils/helpers.js";
 
 {/* MONITOR VIDEO */}

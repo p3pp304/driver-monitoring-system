@@ -14,7 +14,7 @@ export default function NavBar({ techStatus, userStatus, safetyScore, sessionSta
             {/* 2. OGGETTO CENTRALE: Safety Score e Stato */}
             <div className="p-1 flex text-center flex-col items-center gap-1">
                 <h2 className={`text-3xl font-black ${safetyScore >= 90 ? "text-green-400" : (safetyScore >= 70 ? "text-lime-500" : (safetyScore >= 40 ? "text-orange-500" : "text-red-600"))}`}>
-                    Safety Score: {safetyScore}/100 
+                    Score: {safetyScore}
                 </h2>
                 <p className="text-sm text-gray-500 font-medium">{userStatus}</p>
             </div>

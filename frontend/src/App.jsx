@@ -9,7 +9,7 @@ import SummaryScreen from './components/SummaryScreen';
 // Importa gli Hook e le funzioni utils
 import { useDmsWebSocket } from './hooks/useDmsWebSocket';
 import { useMediaPipe } from './hooks/useMediaPipe';
-import { speakText} from './utils/helpers';
+import { speakText, formatTime} from './utils/helpers';
 
 // === COMPONENTE PRINCIPALE ===
 
@@ -115,7 +115,7 @@ const toggleJourney = () => {
         // INIZIA IL VIAGGIO
         setSafetyScore(100);
         setDistractionCount(0);
-        setVariableX(0);
+        setVariableX(0);F
         setTripDuration(0);
         setAiFeedback("Nessuna anomalia rilevata.");
         setRouteSuggestion(null);
