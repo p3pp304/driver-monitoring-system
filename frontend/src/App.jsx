@@ -31,14 +31,29 @@ export default function App() {
 // ---INTEGRAZIONE HOOKS PERSONALIZZATI ---
 
 // 1. WebSocket per comunicazione con il server FastAPI
-const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (data) => {
+const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
     // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
-    setAiFeedback(data.voice_text);
-    setRouteSuggestion(data.nearest_rest_stop);
-    setSafetyScore(prev => Math.max(0, prev - 10)); // Penalità di 10 punti per ogni distrazione rilevata
+    setAiFeedback(response.voice_text);
+    setRouteSuggestion(response.nearest_rest_stop);
+    setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
     setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
-    speakText(data.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
+    speakText(response.voice_text); // Il sistema legge ad alta voce il feedback ricevuto
 });
+
+// 2. MediaPipe per il monitoraggio in tempo reale del conducente
+const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
+    // Invia un messaggio al server per notificare l'allarme di sonnolenza
+  sendWsMessage({ 
+      event: "DROWSINESS_ALERT", 
+      variable_x: timeClosed,
+      location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
+    }); 
+});
+
+
+
+
+
 
   useEffect(() => {
     if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
