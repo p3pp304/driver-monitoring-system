@@ -28,25 +28,20 @@ export function calculate_ear(landmarks, eye_indices) {
 
 // --- FUNZIONE TEXT-TO-SPEECH ---
 export const speakText = (text) => {
-    // Verifica che il browser supporti la funzione
-    if ('speechSynthesis' in window) {
-        // 1. Ferma eventuali frasi precedenti ancora in riproduzione
-        window.speechSynthesis.cancel();
+    if (!('speechSynthesis' in window)) return;
 
-        // 2. Prepara la frase da leggere
-        const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
 
-        // 3. Configura la voce
-        utterance.lang = 'it-IT'; // Imposta la pronuncia in italiano
-        utterance.rate = 1.2;     // Velocità di lettura (da 0.1 a 10)
-        utterance.pitch = 0;    // Tono della voce (da 0 a 2)
+    utterance.lang = 'it-IT';
+    utterance.rate = 1.15; 
+    utterance.pitch = 0; 
 
-        // 4. Riproduci l'audio
-        window.speechSynthesis.speak(utterance);
-    } else {
-        console.warn("Sintesi vocale non supportata in questo browser.");
-    }
-};
+    // Assegna al volo la prima voce italiana trovata dal browser
+    utterance.voice = window.speechSynthesis.getVoices().find(v => v.lang.includes('it')) || null;
+
+    window.speechSynthesis.speak(utterance);
+}
 
 // Funzione per formattare i secondi in Minuti:Secondi
 export const formatTime = (totalSeconds) => {
