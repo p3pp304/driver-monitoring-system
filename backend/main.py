@@ -53,6 +53,7 @@ async def websocket_endpoint(websocket: WebSocket):
     print("✅ Connessione WebSocket stabilita. In attesa di telemetria...")
 
     last_event_time = None  # Lo stato va mantenuto a livello di sessione WebSocket, non globale, per gestire più veicoli contemporaneamente
+    last_ai_response_time = None # Variabile di stato per il cooldown dell'IA
     
     try:
         # Loop infinito: il server "ascolta" in silenzio senza consumare CPU
@@ -75,9 +76,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 # --- PILASTRO 1 & 2: LOGICA DI INTERVENTO PROATTIVO ---
                 # asyncio.gather attende che entrambi finiscano, dimezzando i tempi di latenza
                 
-                ai_task = genera_assistenza_vocale(var_x) 
+                ai_task = genera_assistenza_vocale(var_x, last_ai_response_time) 
                 maps_task = get_nearest_safe_zone(location["lat"], location["lng"]) 
-                ai_response, safe_zone = await asyncio.gather(ai_task, maps_task) # Ottimizziamo i tempi di risposta eseguendo in parallelo l'IA e la ricerca della safe zone
+                ai_result, safe_zone = await asyncio.gather(ai_task, maps_task) # Ottimizziamo i tempi di risposta eseguendo in parallelo l'IA e la ricerca della safe zone
+
+                ai_response, last_ai_response_time = ai_result # Aggiorniamo il timer dell'IA solo dopo aver ricevuto la risposta (sia reale che di fallback)
 
                 # 3. Costruzione del pacchetto di "Risoluzione Attiva"
                 penalty_points,last_event_time = calculate_smart_penalty(var_x, last_event_time)
