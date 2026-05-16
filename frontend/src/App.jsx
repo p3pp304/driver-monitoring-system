@@ -9,6 +9,7 @@ import SummaryScreen from './components/SummaryScreen';
 // Importa gli Hook e le funzioni utils
 import { useDmsWebSocket } from './hooks/useDmsWebSocket';
 import { useMediaPipe } from './hooks/useMediaPipe';
+import { useGeolocation } from './hooks/useGeolocation';
 import { speakText, formatTime} from './utils/helpers';
 
 // === COMPONENTE PRINCIPALE ===
@@ -28,13 +29,10 @@ export default function App() {
   const canvasRef = useRef(null);
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
   const lastDistractionTime = useRef(null); // <-- Riferimento per l'ultimo errore (usato per bonus di sicurezza)
-  // riferimenti GPS 
-  // Coordinate di fallback (es. Politecnico di Bari) in caso di assenza di segnale
-  const currentLocationRef = useRef({ lat: 41.1087, lng: 16.8784 }); 
-  const watchIdRef = useRef(null); // Serve per spegnere il GPS a fine viaggio
 
 
   // ---3. HOOKS PERSONALIZZATI---
+
 
       // 1. WebSocket per comunicazione con il server FastAPI
   const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
@@ -61,6 +59,9 @@ export default function App() {
       }); 
   });
 
+  // 3. Geolocalizzazione per tracciare la posizione del veicolo durante il viaggio
+  const { currentLocationRef } = useGeolocation(sessionStatus);
+
   // --- 3. LOGICA DI BENVENUTO INIZIALE ---
   useEffect(() => {
     if (sessionStatus === "started") {
@@ -73,22 +74,6 @@ export default function App() {
   }, [sessionStatus]);
 
   //FUNZIONI DI SUPPORTO(a toggleJourney)
-
-  // Accensione e spegnimento GPS (per monitoraggio continuo durante il viaggio)
-  const startGPSMonitoring = () => {
-    if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => currentLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-      );
-    }
-  };
-
-  const stopGPSMonitoring = () => {
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current); // 
-      watchIdRef.current = null; 
-    }
-  };
 
     // Feedback finale a fine viaggio basato sul punteggio di sicurezza
   const playEndJourneyFeedback = (score, distractionCount) => {
@@ -122,14 +107,12 @@ export default function App() {
 
         tripStartTimeRef.current = Date.now(); // Fa partire il timer
         lastDistractionTime.current = Date.now(); 
-        startGPSMonitoring(); // Accende il GPS
 
   } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
       setSessionStatus("finished");
       playEndJourneyFeedback(safetyScore, distractionCount);
       setUserStatus("Viaggio Terminato");
-      stopGPSMonitoring(); // Spegne il GPS a fine viaggio
       // Calcola i secondi totali trascorsi dall'inizio
       if (tripStartTimeRef.current) {
           const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
