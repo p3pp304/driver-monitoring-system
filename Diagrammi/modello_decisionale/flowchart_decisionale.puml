@@ -1,0 +1,82 @@
+@startuml
+skinparam handwritten false
+skinparam DefaultFontName Arial
+skinparam ActivityBackgroundColor #LightCyan
+skinparam ActivityBorderColor #008B8B
+skinparam DiamondBackgroundColor #LightYellow
+skinparam DiamondBorderColor #Orange
+
+title Algoritmo Decisionale di Intervento Real-Time e Graceful Degradation
+
+start
+
+:Acquisizione frame video da Webcam;
+:Estrazione dei 468 landmark facciali (MediaPipe Face Mesh);
+
+if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
+    :Incremento contatore temporale (Variabile x);
+    
+    if (Variabile x >= 0.7 secondi?) then (yes)
+        
+        ' --- BIFORCAZIONE ATTIVAZIONE IBRIDA ---
+        fork
+            partition "LIVELLO REATTIVO LOCALE (Edge-Side)" {
+                :Emissione segnale acustico immediato (Beep);
+                :Attivazione overlay visivo rosso semitrasparente;
+                note right
+                    Latenza: 0ms
+                    (Massima reattività)
+                end note
+            }
+        fork again
+            partition "LIVELLO PROATTIVO CENTRALIZZATO (Cloud Server)" {
+                :Invia Payload JSON con telemetria via WebSocket;
+                :Backend FastAPI riceve l'evento;
+                
+                fork
+                    :Interrogazione API Gemini\n(Generazione testo empatico);
+                fork again
+                    :Interrogazione API Geoapify\n(Calcolo Safe Zone vicina);
+                end fork
+                
+                :Calcolo penalità Safety Score\n(Verifica coefficiente recidività);
+                :Invio pacchetto di risoluzione al Client;
+            }
+        end fork
+        
+        ' --- FASE DI RITORNO E GESTIONE TIMEOUT ---
+        if (Risposta dal Backend ricevuta entro 4 secondi?) then (yes)
+            :Aggiornamento Safety Score grafico;
+            :Riproduzione sintesi vocale dinamica (Web Speech API);
+            :Rendering della rotta di sosta sulla mappa;
+        else (no)
+            partition "STRATEGIA DI FALLBACK (Graceful Degradation)" {
+                :Attivazione Timeout di Sicurezza;
+                :Caricamento messaggio di emergenza statico da file locale;
+                :Riproduzione vocale della direttiva di ripiego;
+                note left
+                    Preserva la sicurezza
+                    in assenza di rete
+                end note
+            }
+        end if
+        
+        :Attivazione Cooldown locale\n(Throttling anti-spam: 2 secondi);
+        
+    else (no)
+        :Mantenimento dello stato di marcia normale;
+    endif
+
+else (no)
+    if (Session Status == ACTIVE?) then (yes)
+        :Worker asincrono incrementa timer guida sicura;
+        if (Tempo ininterrotto senza infrazioni >= 10 minuti?) then (yes)
+            :Erogazione automatica Safety Bonus (+5 punti);
+            :Reset timer di guida sicura;
+        endif
+    endif
+    :Reset della variabile x a 0;
+endif
+
+stop
+@enduml

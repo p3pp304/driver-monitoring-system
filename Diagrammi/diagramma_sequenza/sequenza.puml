@@ -1,0 +1,74 @@
+@startuml
+skinparam handwritten false
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 150
+
+' --- DEFINIZIONE DEGLI ATTORI E DEI NODI ---
+actor "Conducente" as Driver
+box "Edge Computing (Veicolo)" #LightCyan
+participant "React\n(Frontend SPA)" as Client
+end box
+
+box "Cloud Computing (Server)" #LightYellow
+participant "FastAPI\n(Backend)" as Server
+end box
+
+database "API Gemini\n(AI Generativa)" as Gemini
+database "API Geoapify\n(Mappe)" as Maps
+
+' --- FASE 1: INIZIALIZZAZIONE ---
+== Handshake e Inizializzazione della Sessione ==
+Client -> Server: Richiesta Connessione WebSocket (ws://...)
+activate Server
+Server --> Client: Handshake Accettato (Canale Full-Duplex Aperto)
+Server -> Server: Avvio Task Asincrono in Background\n(asyncio.create_task(bonus_manager))
+
+' --- FASE 2: MONITORAGGIO IN LOCALE ---
+== Monitoraggio Passivo Edge-Side ==
+loop Frequenza Frame Video
+    Driver -> Client: Flusso Video (Webcam)
+    Client -> Client: Landmark Detection (MediaPipe)
+    Client -> Client: Calcolo Variabile x (EAR)
+end
+
+' --- FASE 3: GESTIONE EMERGENZA (PARADIGMA EVENT-DRIVEN) ---
+== Reazione all'Emergenza e Assistenza Proattiva ==
+alt Variabile x > 0.7 secondi
+    ' Reazione a latenza zero
+    Client -> Driver: Feedback Visivo (Rosso) e Allarme Acustico (Beep)\n[Latenza: 0ms]
+    
+    ' Invio Telemetria
+    Client -> Server: INVIA PAYLOAD: {event: "DROWSINESS", x_val: 0.8, gps: {...}}
+    
+    ' Parallelismo del Server
+    note right of Server: Parallelizzazione I/O Non Bloccante\n(await asyncio.gather)
+    par Esecuzione Concorrente API
+        Server -> Gemini: Richiesta Prompt Generativo (con fallback)
+        Server -> Maps: Calcolo rotta per Safe Zone
+        Gemini --> Server: Testo Feedback Vocale
+        Maps --> Server: Coordinate Percorso
+    end
+    
+    ' Calcolo logica di business
+    Server -> Server: Calcolo Penalità Safety Score\n(Verifica Recidività)
+    
+    ' Risposta
+    Server --> Client: INVIA RISOLUZIONE: {voice_text, maps_route, penalty}
+    
+    ' Aggiornamento UI
+    Client -> Client: Decurtazione Punti (Safety Score)
+    Client -> Driver: Riproduzione Vocale (Web Speech API) e Mostra Mappa
+end
+
+' --- FASE 4: GAMIFICATION IN BACKGROUND ---
+== Gamification: Recupero Punti Proattivo ==
+loop Ogni 60 secondi (Task Indipendente)
+    Server -> Server: Verifica (now - last_event_time)
+    alt Tempo senza infrazioni >= 600 secondi (10 min)
+        Server --> Client: INVIA BONUS: {type: "SAFETY_BONUS", points: 5}
+        Client -> Client: Incremento Punti (Safety Score)
+        Server -> Server: Reset Timer last_event_time
+    end
+end
+
+@enduml
