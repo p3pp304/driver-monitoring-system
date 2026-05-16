@@ -61,7 +61,7 @@ export default function App() {
       }); 
   });
 
-  // --- 4. LOGICA DI BENVENUTO INIZIALE ---
+  // --- 3. LOGICA DI BENVENUTO INIZIALE ---
   useEffect(() => {
     if (sessionStatus === "started") {
       // Il sistema parla solo una volta all'avvio
