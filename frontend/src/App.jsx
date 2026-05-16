@@ -116,16 +116,15 @@ export default function App() {
     const intro = "Viaggio terminato. ";
     let messaggio = "";
 
-    if (x >= 90) {
+    if (score >= 90) {
         messaggio = "Guida eccellente. Hai mantenuto un livello di attenzione ottimale per tutto il tragitto. Ottimo lavoro.";
-    } else if (x >= 70) {
+    } else if (score >= 70) {
         messaggio = "Buona guida, ma c'è margine di miglioramento. Cerca di ridurre le distrazioni minori per mantenere sempre la massima concentrazione.";
-    } else if (x >= 40) {
+    } else if (score >= 40) {
         messaggio = `Attenzione: ho rilevato ${distractionCount} distrazioni durante il percorso. Ti invito a mantenere sempre lo sguardo sulla strada per viaggiare in totale sicurezza.`;
     } else {
         messaggio = `Livello di attenzione critico. Sono state registrate ben ${distractionCount} distrazioni o segni di sonnolenza. Per la tua incolumità, ti consiglio di fare una pausa prima del prossimo viaggio.`;
     }
-
     speakText(intro + messaggio);
   };
 
