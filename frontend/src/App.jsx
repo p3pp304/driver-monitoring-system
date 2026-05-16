@@ -29,11 +29,8 @@ export default function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
-  const lastDistractionTime = useRef(null); // <-- Riferimento per l'ultimo errore (usato per bonus di sicurezza)
-
 
   // ---3. HOOKS PERSONALIZZATI---
-
 
       // 1. WebSocket per comunicazione con il server FastAPI
   const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
@@ -42,7 +39,6 @@ export default function App() {
       setRouteSuggestion(response.maps_route);
       setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
       setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
-      lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
       speakText(response.voice_text + " La zona di sosta più vicina è: " + response.maps_route.name + "a " + response.maps_route.distance_kilometers + " chilometri"); // Il sistema legge ad alta voce il feedback ricevuto + eventuale suggerimento di percorso
   }, 
   (bonusResponse) => {
@@ -50,7 +46,10 @@ export default function App() {
       speakText("Ottima guida! Hai guadagnato " + bonusResponse.points + " punti! "); // Il sistema legge ad alta voce il bonus ricevuto
   });
 
-      // 2. MediaPipe per il monitoraggio in tempo reale del conducente
+       // 2. Geolocalizzazione per tracciare la posizione del veicolo durante il viaggio
+  const { currentLocationRef } = useGeolocation(sessionStatus);
+
+      // 3. MediaPipe per il monitoraggio in tempo reale del conducente
   const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
       // Invia un messaggio al server per notificare l'allarme di sonnolenza
     sendWsMessage({ 
@@ -60,15 +59,13 @@ export default function App() {
       }); 
   });
 
-  // 3. Geolocalizzazione per tracciare la posizione del veicolo durante il viaggio
-  const { currentLocationRef } = useGeolocation(sessionStatus);
+
 
   // --- 3. LOGICA DI BENVENUTO INIZIALE ---
   useEffect(() => {
     if (sessionStatus === "started") {
       // Il sistema parla solo una volta all'avvio
       speakText("Benvenuto, io sono il tuo assistente virtuale di guida. Premi il pulsante Inizia Viaggio per attivare il monitoraggio in tempo reale.");
-      
       // Passa immediatamente allo stato di attesa
       setSessionStatus("idle");
     }
@@ -85,12 +82,10 @@ export default function App() {
         setAiFeedback("Nessuna anomalia rilevata.");
         setRouteSuggestion(null);
         setSessionStatus("active");
-        // LOGICA A DOPPIO STATUS
         setUserStatus("In Viaggio");
         speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
 
         tripStartTimeRef.current = Date.now(); // Fa partire il timer
-        lastDistractionTime.current = Date.now(); 
 
   } else if (sessionStatus === "active") {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
