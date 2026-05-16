@@ -12,12 +12,13 @@ import { useMediaPipe } from './hooks/useMediaPipe';
 import { useGeolocation } from './hooks/useGeolocation';
 import { speakText, formatTime} from './utils/helpers';
 import { playEndJourneyFeedback } from './services/audioFeedback';
+import {SESSION_STATUS} from './utils/constant';
 
 // === COMPONENTE PRINCIPALE ===
 
 export default function App() {
   // ---1. STATI---
-  const [sessionStatus, setSessionStatus] = useState("started"); // "started" | "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
+  const [sessionStatus, setSessionStatus] = useState(SESSION_STATUS.STARTED); // "started" | "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
   const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
   const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
   const [userStatus, setUserStatus] = useState("Pronto per la partenza");  // Stato utente semplificato per l'interfaccia (es. "Pronto", "In Viaggio", "Viaggio Terminato")
@@ -63,33 +64,33 @@ export default function App() {
 
   // --- 3. LOGICA DI BENVENUTO INIZIALE ---
   useEffect(() => {
-    if (sessionStatus === "started") {
+    if (sessionStatus === SESSION_STATUS.STARTED) {
       // Il sistema parla solo una volta all'avvio
       speakText("Benvenuto, io sono il tuo assistente virtuale di guida. Premi il pulsante Inizia Viaggio per attivare il monitoraggio in tempo reale.");
       // Passa immediatamente allo stato di attesa
-      setSessionStatus("idle");
+      setSessionStatus(SESSION_STATUS.IDLE);
     }
   }, [sessionStatus]);
 
   //FUNZIONI DI SUPPORTO(a toggleJourney)
 
   const toggleJourney = () => {
-    if (sessionStatus === "idle") {
+    if (sessionStatus === SESSION_STATUS.IDLE) {
         // INIZIA IL VIAGGIO
         setSafetyScore(100);
         setDistractionCount(0);
         setTripDuration(0);
         setAiFeedback("Nessuna anomalia rilevata.");
         setRouteSuggestion(null);
-        setSessionStatus("active");
+        setSessionStatus(SESSION_STATUS.ACTIVE);
         setUserStatus("In Viaggio");
         speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
 
         tripStartTimeRef.current = Date.now(); // Fa partire il timer
 
-  } else if (sessionStatus === "active") {
+  } else if (sessionStatus === SESSION_STATUS.ACTIVE) {
       // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
-      setSessionStatus("finished");
+      setSessionStatus(SESSION_STATUS.FINISHED);
       playEndJourneyFeedback(safetyScore, distractionCount);
       setUserStatus("Viaggio Terminato");
       // Calcola i secondi totali trascorsi dall'inizio
@@ -97,9 +98,9 @@ export default function App() {
           const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
           setTripDuration(totalSeconds);
       }
-  }else if(sessionStatus === "finished") {
+  }else if(sessionStatus === SESSION_STATUS.FINISHED) {
       // RESETTA PER UN NUOVO VIAGGIO
-      setSessionStatus("idle");
+      setSessionStatus(SESSION_STATUS.IDLE);
       setSafetyScore(100);
       setAiFeedback("Nessuna anomalia rilevata.");
       setRouteSuggestion(null);
@@ -121,7 +122,7 @@ export default function App() {
       />  
 
       {/* DASHBOARD (visibile solo se in attesa o in viaggio) */}
-      {sessionStatus !== "finished" && (
+      {sessionStatus !== SESSION_STATUS.FINISHED && (
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <VideoMonitor 
             videoRef={videoRef} 
@@ -140,7 +141,7 @@ export default function App() {
       )}
 
       {/* PANNELLO STATISTICHE FINALI (Appare solo a fine viaggio) */}
-      {sessionStatus === "finished" && (
+      {sessionStatus === SESSION_STATUS.FINISHED && (
         <SummaryScreen
           tripDuration={tripDuration}
           safetyScore={safetyScore}
