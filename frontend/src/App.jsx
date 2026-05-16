@@ -6,11 +6,12 @@ import VideoMonitor from './components/VideoMonitor';
 import AlertPanels from './components/AlertPanels';
 import SummaryScreen from './components/SummaryScreen';
 
-// Importa gli Hook e le funzioni utils
+// Importa gli Hook e le funzioni utils, servizi esterni
 import { useDmsWebSocket } from './hooks/useDmsWebSocket';
 import { useMediaPipe } from './hooks/useMediaPipe';
 import { useGeolocation } from './hooks/useGeolocation';
 import { speakText, formatTime} from './utils/helpers';
+import { playEndJourneyFeedback } from './services/audioFeedback';
 
 // === COMPONENTE PRINCIPALE ===
 
@@ -74,23 +75,6 @@ export default function App() {
   }, [sessionStatus]);
 
   //FUNZIONI DI SUPPORTO(a toggleJourney)
-
-    // Feedback finale a fine viaggio basato sul punteggio di sicurezza
-  const playEndJourneyFeedback = (score, distractionCount) => {
-    const intro = "Viaggio terminato. ";
-    let messaggio = "";
-
-    if (score >= 90) {
-        messaggio = "Guida eccellente. Hai mantenuto un livello di attenzione ottimale per tutto il tragitto. Ottimo lavoro.";
-    } else if (score >= 70) {
-        messaggio = "Buona guida, ma c'è margine di miglioramento. Cerca di ridurre le distrazioni minori per mantenere sempre la massima concentrazione.";
-    } else if (score >= 40) {
-        messaggio = `Attenzione: ho rilevato ${distractionCount} distrazioni durante il percorso. Ti invito a mantenere sempre lo sguardo sulla strada per viaggiare in totale sicurezza.`;
-    } else {
-        messaggio = `Livello di attenzione critico. Sono state registrate ben ${distractionCount} distrazioni o segni di sonnolenza. Per la tua incolumità, ti consiglio di fare una pausa prima del prossimo viaggio.`;
-    }
-    speakText(intro + messaggio);
-  };
 
   const toggleJourney = () => {
     if (sessionStatus === "idle") {
