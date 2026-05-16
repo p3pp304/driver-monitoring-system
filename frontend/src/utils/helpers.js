@@ -4,7 +4,7 @@
 export const LEFT_EYE = [362, 385, 387, 263, 373, 390]
 export const RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 export const EAR_THRESHOLD = 0.2  //Soglia empirica sotto la quale l'occhio è considerato chiuso
-export const X_SLEEP_THRESHOLD = 0.8; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
+export const X_SLEEP_THRESHOLD = 0.7; // tempo minimo di chiusura occhi dopo il quale il conducente rileva come "dormiente"
 
 export function calculate_ear(landmarks, eye_indices) {
     /*Calcola l'Eye Aspect Ratio (EAR).
