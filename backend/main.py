@@ -55,6 +55,29 @@ async def websocket_endpoint(websocket: WebSocket):
     last_event_time = None  # Lo stato va mantenuto a livello di sessione WebSocket, non globale, per gestire più veicoli contemporaneamente
     last_ai_response_time = None # Variabile di stato per il cooldown dell'IA
     
+    # --- TASK IN BACKGROUND (Il nuovo gestore del Bonus) ---
+    async def bonus_manager():
+        try:
+            while True:
+                await asyncio.sleep(60) # Controlla ogni 60 secondi
+                now = datetime.now()
+                secondi_trascorsi = (now - last_event_time).total_seconds()
+                
+                if secondi_trascorsi >= 600: # 600 secondi = 10 minuti di guida sicura
+                    messaggio_bonus = {
+                        "type": "SAFETY_BONUS",
+                        "points": 5
+                    }
+                    await websocket.send_text(json.dumps(messaggio_bonus))
+                    # Resetta il timer dopo aver dato il bonus
+                    last_event_time = now
+                    print("🏆 Bonus sicurezza inviato al veicolo dal server.")
+        except asyncio.CancelledError:
+            pass # Chiusura silenziosa quando il veicolo si scollega
+
+    # Avviamo il worker in parallelo alla connessione
+    asyncio.create_task(bonus_manager())
+
     try:
         # Loop infinito: il server "ascolta" in silenzio senza consumare CPU
         while True:

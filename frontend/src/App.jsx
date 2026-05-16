@@ -45,6 +45,10 @@ export default function App() {
       setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
       lastDistractionTime.current = Date.now(); // Resetta il timer per il bonus di sicurezza
       speakText(response.voice_text + " La zona di sosta più vicina è: " + response.maps_route.name + "a " + response.maps_route.distance_kilometers + " chilometri"); // Il sistema legge ad alta voce il feedback ricevuto + eventuale suggerimento di percorso
+  }, 
+  (bonusResponse) => {
+      setSafetyScore(prev => Math.min(100, prev + bonusResponse.points));
+      speakText("Ottima guida! Hai guadagnato " + bonusResponse.points + " punti! "); // Il sistema legge ad alta voce il bonus ricevuto
   });
 
       // 2. MediaPipe per il monitoraggio in tempo reale del conducente
@@ -67,31 +71,6 @@ export default function App() {
       setSessionStatus("idle");
     }
   }, [sessionStatus]);
-
-// --- 5. LOGICA DEL BONUS ---
-  useEffect(() => {
-    if (sessionStatus !== "active") return; // <--- Ferma il timer se non sei in viaggio
-    const bonusInterval = setInterval(() => {
-      const now = Date.now();
-      // Calcola i secondi passati dall'ultimo errore
-      const secondsSinceLast = (now - lastDistractionTime.current) / 1000;
-
-      // Se sono passati 600 secondi (10 minuti)
-      if (secondsSinceLast >= 600) {
-        setSafetyScore(prev => {
-          if (prev < 100) {
-            return Math.min(100, prev + 5);
-          }
-          return prev;
-        });
-        
-        // Resetta il timer
-        lastDistractionTime.current = Date.now();
-      }
-    }, 1000); // Il controllo scatta ogni secondo
-    return () => clearInterval(bonusInterval);
-  }, [sessionStatus]); // <-- Dipendenza dallo stato del viaggio
-
 
   //FUNZIONI DI SUPPORTO(a toggleJourney)
 

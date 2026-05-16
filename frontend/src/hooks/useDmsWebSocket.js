@@ -2,7 +2,7 @@
  
  // --- 1. WEBSOCKET ---
 
- export const useDmsWebSocket = (sessionStatus, onDistraction) => {
+ export const useDmsWebSocket = (sessionStatus, onDistraction, onBonus) => {
     const wsRef = useRef(null);
     const [techStatus, setTechStatus] = useState("Sistema di monitoraggio in attesa");  // Stato tecnico dettagliato per debugging (non mostrato all'utente finale, ma utile durante lo sviluppo)
 
@@ -30,6 +30,11 @@
             if (response.type === "PROACTIVE_ASSISTANCE") {
                 // Passiamo i dati della risposta ad App.jsx tramite la callback
                 onDistraction(response);
+            }
+            else if (response.type === "SAFETY_BONUS") {
+                // Per ora non facciamo nulla con il bonus, ma potremmo usarlo in futuro per aggiornare il punteggio di sicurezza in tempo reale
+                onBonus(response);
+                console.log("[NETWORK] Bonus di sicurezza ricevuto:", response);
             }
         };
 

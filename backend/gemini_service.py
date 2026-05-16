@@ -19,7 +19,7 @@ async def genera_assistenza_vocale(x, last_ai_response_time):
             print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA. Ho applicato risposta pre-impostata.")
             
             # Fallback pulito senza asterischi per il sintetizzatore vocale
-            return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare.", now
+            return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare.", last_ai_response_time
             
 
     # Il prompt rimane rigoroso per evitare che l'IA generi punteggiatura strana
