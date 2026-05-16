@@ -5,27 +5,7 @@ import json
 from datetime import datetime
 from gemini_service import genera_assistenza_vocale
 from maps_service import get_nearest_safe_zone
-
-def calculate_smart_penalty(var_x, last_event_time):
-    now = datetime.now()
-    
-    # 1. Penalità base proporzionale alla durata
-    if (float(var_x) < 1.5):
-        base_penalty = 5
-    elif (float(var_x) < 3.0):
-        base_penalty = 10
-    else:
-        base_penalty = 20
-
-    # 2. Controllo recidività (entro 1 minuto)
-    multiplier = 1.0
-    if last_event_time and (now - last_event_time).seconds < 60:
-        multiplier = 2.0  # Raddoppia la penalità se è recidivo
-        if (now - last_event_time).seconds < 30:
-            multiplier = 3.0  # Triplica se è molto recidivo
-    last_event_time = now
-    return base_penalty * multiplier, now # Punti da sottrarre al Safety Score e aggiornamento del timer di recidività
-
+from scoring_service import calculate_smart_penalty
 
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI()                                                        
@@ -76,7 +56,7 @@ async def websocket_endpoint(websocket: WebSocket):
             pass # Chiusura silenziosa quando il veicolo si scollega
 
     # Avviamo il worker in parallelo alla connessione
-    asyncio.create_task(bonus_manager())
+    bonus_task = asyncio.create_task(bonus_manager())
 
     try:
         # Loop infinito: il server "ascolta" in silenzio senza consumare CPU
@@ -122,4 +102,6 @@ async def websocket_endpoint(websocket: WebSocket):
         print("❌ Veicolo disconnesso. Sessione V2N terminata.")
     except Exception as e:
         print(f"⚠️ Errore critico nel server: {e}")
+    finally:
+        bonus_task.cancel() # Assicuriamoci di chiudere il worker quando il veicolo si disconnette
     
