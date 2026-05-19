@@ -1,6 +1,6 @@
-import React from "react";
+import React, {useState} from "react";
 
-{/* PANNELLI DATI */}
+// PANNELLI DATI 
 export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSuggestion }) {
 
     const [isMapVisible, setIsMapVisible] = useState(false);
@@ -32,25 +32,29 @@ export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSu
                     {/* Bottone Toggle per mostrare/nascondere la mappa */}
                     <button 
                         onClick={() => setIsMapVisible(!isMapVisible)}
-                        className="mt-3 block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition-colors cursor-pointer"
+                        className="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2 rounded-lg transition-colors cursor-pointer"
                     >
                         {isMapVisible ? "Nascondi Mappa" : "Mostra Mappa"}
                     </button>
 
                     {/* 4. Rendering Condizionale dell'iFrame */}
                     {isMapVisible && (
-                        <div className="mt-3 h-[250px] w-full rounded-lg overflow-hidden border border-gray-600">
+                        <div className="mt-3 h-[250px] w-full rounded-lg overflow-hidden">
                             <iframe
                                 width="100%"
                                 height="100%"
-                                frameBorder="0"
-                                style={{ border: 0 }}
                                 src={`https://maps.google.com/maps?q=${routeSuggestion.lat},${routeSuggestion.lng}&hl=it&z=15&output=embed`}
-                                allowFullScreen
                                 title="Google Maps Safe Zone"
                             ></iframe>
                         </div>
                     )}
+
+                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${routeSuggestion.lat},${routeSuggestion.lng}`} 
+                        target='_blank'
+                        rel='noopener noreferrer'
+                         className="mt-3 block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2 rounded-lg transition-colors cursor-pointer">
+                        Avvia la Navigazione su Google Maps
+                    </a>
                     </>
                 )}
             </div>
