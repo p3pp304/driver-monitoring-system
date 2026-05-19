@@ -14,7 +14,7 @@ export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSu
             {/* 2. Assistente IA */}
             <div className="p-4 bg-gray-800 rounded-xl">
                 <span className="text-gray-500 text-sm uppercase font-bold">Assistente IA</span>
-                <p className="italic mt-1 break-words">"{aiFeedback}"</p>
+                <p className=" mt-1">{aiFeedback}</p>
             </div>
 
             {/* 3. Mappe */}
