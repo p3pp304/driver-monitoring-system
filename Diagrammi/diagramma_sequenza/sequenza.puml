@@ -13,8 +13,8 @@ box "Cloud Computing (Server)" #LightYellow
 participant "FastAPI\n(Backend)" as Server
 end box
 
-database "API Gemini\n(AI Generativa)" as Gemini
-database "API Geoapify\n(Mappe)" as Maps
+participant "API Gemini\n(AI Generativa)" as Gemini <<External API>>
+participant "API Geoapify\n(Mappe)" as Maps <<External API>>
 
 ' --- FASE 1: INIZIALIZZAZIONE ---
 == Handshake e Inizializzazione della Sessione ==
@@ -46,7 +46,7 @@ alt Variabile x > 0.7 secondi
         Server -> Gemini: Richiesta Prompt Generativo (con fallback)
         Server -> Maps: Calcolo rotta per Safe Zone
         Gemini --> Server: Testo Feedback Vocale
-        Maps --> Server: Coordinate Percorso
+        Maps --> Server: Coordinate per zona di sosta più vicina
     end
     
     ' Calcolo logica di business
