@@ -15,7 +15,6 @@ start
 
 if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
     :Incremento contatore temporale (Variabile x);
-    
     if (Variabile x >= 0.7 secondi?) then (yes)
         
         ' --- BIFORCAZIONE ATTIVAZIONE IBRIDA ---
@@ -25,7 +24,7 @@ if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
                 :Attivazione overlay visivo rosso semitrasparente;
                 note right
                     Latenza: 0ms
-                    (Massima reattività)
+                    (Indipendente dalla connettività V2N)
                 end note
             }
         fork again
@@ -33,33 +32,31 @@ if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
                 :Invia Payload JSON con telemetria via WebSocket;
                 :Backend FastAPI riceve l'evento;
                 
-                fork
-                    :Interrogazione API Gemini\n(Generazione testo empatico);
-                fork again
-                    :Interrogazione API Geoapify\n(Calcolo Safe Zone vicina);
-                end fork
+                partition "STRATEGIA DI FALLBACK (Graceful Degradation)" {
+                    fork
+                        if (API Gemini Raggiungibile?) then (yes)
+                            :Generazione testo empatico (LLM);
+                        else (no)
+                            :Assegnazione messaggio vocale statico;
+                        endif
+                    fork again
+                        if (API Geoapify Raggiungibile?) then (yes)
+                            :Calcolo Safe Zone vicina;
+                        else (no)
+                            :Assegnazione coordinate di sosta standard;
+                        endif
+                    end fork
+                }
                 
                 :Calcolo penalità Safety Score\n(Verifica coefficiente recidività);
                 :Invio pacchetto di risoluzione al Client;
             }
         end fork
         
-        ' --- FASE DI RITORNO E GESTIONE TIMEOUT ---
-        if (Risposta dal Backend ricevuta entro 4 secondi?) then (yes)
-            :Aggiornamento Safety Score grafico;
-            :Riproduzione sintesi vocale dinamica (Web Speech API);
-            :Rendering della rotta di sosta sulla mappa;
-        else (no)
-            partition "STRATEGIA DI FALLBACK (Graceful Degradation)" {
-                :Attivazione Timeout di Sicurezza;
-                :Caricamento messaggio di emergenza statico da file locale;
-                :Riproduzione vocale della direttiva di ripiego;
-                note left
-                    Preserva la sicurezza
-                    in assenza di rete
-                end note
-            }
-        end if
+        ' --- FASE DI RITORNO AL CLIENT ---
+        :Aggiornamento Safety Score grafico;
+        :Riproduzione sintesi vocale dinamica (Web Speech API);
+        :Rendering della rotta di sosta sulla mappa;
         
         :Attivazione Cooldown locale\n(Throttling anti-spam: 2 secondi);
         
