@@ -17,12 +17,9 @@ async def genera_assistenza_vocale(x, last_ai_response_time):
         if secondi_trascorsi < AI_COOLDOWN_SECONDS:
             minuti_rimanenti = int((AI_COOLDOWN_SECONDS - secondi_trascorsi) / 60)
             print(f"Timer attivo: mancano {minuti_rimanenti} minuti alla prossima chiamata IA. Ho applicato risposta pre-impostata.")
-            
-            # Fallback pulito senza asterischi per il sintetizzatore vocale
+            #Fallback
             return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare.", last_ai_response_time
             
-
-    # Il prompt rimane rigoroso per evitare che l'IA generi punteggiatura strana
     prompt = f"Il conducente ha chiuso gli occhi per {x} secondi. Genera una frase brevissima (max 15 parole) per avvertirlo della pericolosità della situazione e consigliargli di accostare immediatamente. Sottolinea anche il tempo di chiusura degli occhi per enfatizzare il rischio. Non mettere nulla in grassetto o in corsivo e non usare emoji. Rispondi solo con la frase, senza introduzioni o spiegazioni. Cerca di essere molto diretto e chiaro, come se stessi parlando a un guidatore in pericolo imminente."
     
     try:
@@ -34,5 +31,5 @@ async def genera_assistenza_vocale(x, last_ai_response_time):
         
     except Exception as e:
         print(f"Errore durante la chiamata Gemini: {e}. Applicata risposta pre-impostata.")
-        # Fallback pulito anche in caso di crash dell'API
+        #Fallback
         return f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare.", last_ai_response_time

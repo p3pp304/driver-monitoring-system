@@ -4,7 +4,6 @@ import httpx
 # ==========================================
 # 1. CONFIGURAZIONE API
 # ==========================================
-# In produzione, è consigliato inserire questa chiave in un file .env
 GEOAPIFY_API_KEY = os.environ.get("GEOAPIFY_API_KEY")
 
 def get_fallback_zone(lat: float, lng: float) -> dict:
@@ -35,7 +34,6 @@ async def get_nearest_safe_zone(lat: float, lng: float)-> dict:
     radius_meters = 5000  # Cerchiamo in un raggio di 5 km
     
     # Costruzione dell'URL
-    # ATTENZIONE: Geoapify richiede coordinate nel formato lon,lat (longitudine prima)
     url = (
         f"https://api.geoapify.com/v2/places?"
         f"categories={categories}&"
@@ -63,9 +61,8 @@ async def get_nearest_safe_zone(lat: float, lng: float)-> dict:
         name = properties.get("name", "Area di ristoro")
         poi_lat = properties.get("lat")
         poi_lng = properties.get("lon")
-        
-        # Geoapify calcola già la distanza lineare in metri dalla posizione del conducente
-        distance_meters = properties.get("distance", 1000)  # Default a 1 km se non fornito)
+    
+        distance_meters = properties.get("distance", 1000)  
         
         # Stima dei minuti (assumendo una velocità media di circa 40 km/h in zone urbane/extraurbane)
         # 40 km/h = ~666 metri al minuto
