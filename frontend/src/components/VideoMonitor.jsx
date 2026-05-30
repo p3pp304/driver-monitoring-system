@@ -1,5 +1,4 @@
-import React from "react";
-import {X_SLEEP_THRESHOLD} from "../utils/helpers.js";
+import { X_SLEEP_THRESHOLD } from "../utils/helpers.js";
 
 {/* MONITOR VIDEO */}
 export default function VideoMonitor({ videoRef, canvasRef, isSleeping, variableX, sessionStatus }) {

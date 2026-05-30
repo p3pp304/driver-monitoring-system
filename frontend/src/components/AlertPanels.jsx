@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import { useState } from "react";
 
 // PANNELLI DATI 
 export default function AlertPanels({ variableX, isSleeping, aiFeedback, routeSuggestion }) {

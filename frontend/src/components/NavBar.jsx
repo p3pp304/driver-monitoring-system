@@ -1,4 +1,3 @@
-import React from "react";
 
 export default function NavBar({ techStatus, userStatus, safetyScore, sessionStatus, toggleJourney }) {
   return (
