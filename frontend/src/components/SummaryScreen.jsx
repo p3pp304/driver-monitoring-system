@@ -1,10 +1,11 @@
 
 export default function SummaryScreen({ tripDuration, safetyScore, distractionCount, formatTime }) {
     return (
-        <div className="mt-8 p-8 bg-gray-900 text-center rounded-2xl border border-gray-700 shadow-2xl">
+        <div className="mt-8 p-8 bg-gray-900 text-center rounded-2xl border border-gray-800">
             <h2 className="text-2xl text-white font-bold mb-6">Riepilogo Sessione di Guida</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
+                {/* Tempo di Guida */}
                 <div className="p-6 bg-black rounded-xl border border-gray-800">
                     <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">
                         Tempo di Guida
@@ -14,6 +15,7 @@ export default function SummaryScreen({ tripDuration, safetyScore, distractionCo
                     </div>
                 </div>
 
+                {/* Safety Score */}
                 <div className="p-6 bg-black rounded-xl border border-gray-800">
                     <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">
                         Safety Score Finale
@@ -22,7 +24,8 @@ export default function SummaryScreen({ tripDuration, safetyScore, distractionCo
                         {safetyScore}/100
                     </div>
                 </div>
-                
+
+                {/* N. Eventi di sonnolenza */}
                 <div className="p-6 bg-black rounded-xl border border-gray-800">
                     <div className="text-gray-500 text-sm uppercase tracking-widest font-bold mb-2">
                         Eventi di Sonnolenza
