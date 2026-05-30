@@ -16,14 +16,14 @@ end box
 participant "API Gemini\n(AI Generativa)" as Gemini <<External API>>
 participant "API Geoapify\n(Mappe)" as Maps <<External API>>
 
-' --- FASE 1: INIZIALIZZAZIONE ---
+' --- INIZIALIZZAZIONE ---
 == Handshake e Inizializzazione della Sessione ==
 Client -> Server: Richiesta Connessione WebSocket (ws://...)
 activate Server
 Server --> Client: Handshake Accettato (Canale Full-Duplex Aperto)
 Server -> Server: Avvio Task Asincrono in Background\n(asyncio.create_task(bonus_manager))
 
-' --- FASE 2: MONITORAGGIO IN LOCALE ---
+' --- MONITORAGGIO IN LOCALE ---
 == Monitoraggio Passivo Edge-Side ==
 loop Frequenza Frame Video
     Driver -> Client: Flusso Video (Webcam)
@@ -31,7 +31,7 @@ loop Frequenza Frame Video
     Client -> Client: Calcolo Variabile x (EAR)
 end
 
-' --- FASE 3: GESTIONE EMERGENZA (PARADIGMA EVENT-DRIVEN) ---
+' --- GESTIONE EMERGENZA (PARADIGMA EVENT-DRIVEN) ---
 == Reazione all'Emergenza e Assistenza Proattiva ==
 alt Variabile x > 0.7 secondi
     ' Reazione a latenza zero
@@ -49,7 +49,7 @@ alt Variabile x > 0.7 secondi
         Maps --> Server: Coordinate per zona di sosta più vicina
     end
     
-    ' Calcolo logica di business
+    ' Calcolo logica penalità
     Server -> Server: Calcolo Penalità Safety Score\n(Verifica Recidività)
     
     ' Risposta
@@ -60,7 +60,7 @@ alt Variabile x > 0.7 secondi
     Client -> Driver: Riproduzione Vocale (Web Speech API) e Mostra Mappa
 end
 
-' --- FASE 4: GAMIFICATION IN BACKGROUND ---
+' --- GAMIFICATION IN BACKGROUND ---
 == Gamification: Recupero Punti Proattivo ==
 loop Ogni 60 secondi (Task Indipendente)
     Server -> Server: Verifica (now - last_event_time)
