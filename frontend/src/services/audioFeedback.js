@@ -1,6 +1,6 @@
 import {speakText} from '../utils/helpers';
 
-    // Feedback finale a fine viaggio basato sul punteggio di sicurezza
+// Feedback finale a fine viaggio basato sul punteggio di sicurezza
  export const playEndJourneyFeedback = (score, distractionCount) => {
     const intro = "Viaggio terminato. ";
     let messaggio = "";

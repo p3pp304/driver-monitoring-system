@@ -1,6 +1,5 @@
 
 services:
-  # Il "cervello" in Python (FastAPI) 
   backend:
     build: ./backend
     container_name: dms_fastapi
@@ -13,7 +12,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
 
-  # L'interfaccia utente in React 
   frontend:
     build: ./frontend
     container_name: dms_react

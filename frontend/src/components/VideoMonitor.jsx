@@ -1,4 +1,4 @@
-import { X_SLEEP_THRESHOLD } from "../utils/helpers.js";
+import { DMS_CONFIG } from "../utils/constant";
 
 export default function VideoMonitor({ videoRef, canvasRef, isSleeping, variableX, sessionStatus }) {
     return (
@@ -22,7 +22,7 @@ export default function VideoMonitor({ videoRef, canvasRef, isSleeping, variable
             ></canvas>
 
             {/* OVERLAY ALLARME */}
-            {isSleeping && variableX > X_SLEEP_THRESHOLD && sessionStatus === "active" && (
+            {isSleeping && variableX > DMS_CONFIG.X_SLEEP_THRESHOLD && sessionStatus === "active" && (
                 <div className="absolute inset-0 bg-red-600 flex items-center justify-center animate-pulse">
                     <span className="text-white text-7xl font-black ">ALLARME!</span>
                 </div>

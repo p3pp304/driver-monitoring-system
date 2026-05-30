@@ -19,35 +19,45 @@
             setTechStatus("Connesso al server");
             console.log("[NETWORK] Handshake WebSocket completato sulla porta 8000."); 
         };
+
+        wsRef.current.onerror = (error) => {
+            console.error("[ERROR] Anomalia hardware o di rete rilevata sul socket:", error);
+        };
         
+        wsRef.current.onmessage = (event) => {
+            try{
+                const response = JSON.parse(event.data);
+                if (response.type === "PROACTIVE_ASSISTANCE") {
+                    onDistraction(response);
+                    console.log("[ASSISTANCE] Pacchetto di assistenza proattiva ricevuto:", response);
+                }
+                else if (response.type === "SAFETY_BONUS") {
+                    onBonus(response);
+                    console.log("[BONUS] Bonus di sicurezza ricevuto:", response);
+                }
+            }catch (error){
+                console.error("[ERROR] Errore nel parsing del payload WebSocket in ingresso:", error);
+            }
+        };
+
         wsRef.current.onclose = () => {
             setTechStatus("Disconnesso dal server");
             console.log("[NETWORK] Canale WebSocket chiuso.");
         }; 
-        
-        wsRef.current.onmessage = (event) => {
-            const response = JSON.parse(event.data);
-            if (response.type === "PROACTIVE_ASSISTANCE") {
-                // Passiamo i dati della risposta ad App.jsx tramite la callback
-                onDistraction(response);
-            }
-            else if (response.type === "SAFETY_BONUS") {
-                // Per ora non facciamo nulla con il bonus, ma potremmo usarlo in futuro per aggiornare il punteggio di sicurezza in tempo reale
-                onBonus(response);
-                console.log("[NETWORK] Bonus di sicurezza ricevuto:", response);
-            }
-        };
 
-        // Pulizia alla disconnessione o fine viaggio
         return () => { 
-            if (wsRef.current) wsRef.current.close(); 
+            if (wsRef.current){
+                 wsRef.current.close(); 
+            } 
         };
+        
     }, [sessionStatus]);
 
-    // Funzione esposta per permettere ad App.jsx di inviare l'allarme
     const sendWsMessage = (message) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify(message));
+        } else {
+            console.warn("[WARNING] Impossibile inviare le misure: canale WebSocket non attivo.");
         }
     };
 

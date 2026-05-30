@@ -1,23 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Import Componenti
-import Navbar from './components/NavBar';
-import VideoMonitor from './components/VideoMonitor';
 import AlertPanels from './components/AlertPanels';
+import Navbar from './components/NavBar';
 import SummaryScreen from './components/SummaryScreen';
+import VideoMonitor from './components/VideoMonitor';
 
-// Importa gli Hook e le funzioni utils, servizi esterni
+// Import Hooks, funzioni utils e servizi esterni
 import { useDmsWebSocket } from './hooks/useDmsWebSocket';
-import { useMediaPipe } from './hooks/useMediaPipe';
 import { useGeolocation } from './hooks/useGeolocation';
-import { speakText, formatTime} from './utils/helpers';
+import { useMediaPipe } from './hooks/useMediaPipe';
 import { playEndJourneyFeedback } from './services/audioFeedback';
-import {SESSION_STATUS} from './utils/constant';
+import { SESSION_STATUS } from './utils/constant';
+import { formatTime, speakText } from './utils/helpers';
 
-// === COMPONENTE PRINCIPALE ===
+//  COMPONENTE PRINCIPALE APP()
 
 export default function App() {
-  // ---1. STATI---
+  // STATI
   const [sessionStatus, setSessionStatus] = useState(SESSION_STATUS.STARTED); // "started" | "idle" | "active" | "finished" --> interrutore principale dell'app, controlla se siamo in viaggio o no
   const [tripDuration, setTripDuration] = useState(0);  // Tempo totale del viaggio in secondi (calcolato alla fine)
   const [distractionCount, setDistractionCount] = useState(0);  // Conta quante volte il conducente ha commesso errori (sonnolenza) durante il viaggio
@@ -26,40 +26,38 @@ export default function App() {
   const [aiFeedback, setAiFeedback] = useState("Nessuna anomalia rilevata.");
   const [routeSuggestion, setRouteSuggestion] = useState(null); 
 
-  // ---2. RIFERIMENTI---
+  // RIFERIMENTI
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const tripStartTimeRef = useRef(null); // <-- Riferimento per l'inizio del viaggio
 
-  // ---3. HOOKS PERSONALIZZATI---
+  // HOOKS
 
-      // 1. WebSocket per comunicazione con il server FastAPI
-  const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => {
-      // Cosa fare quando riceviamo un messaggio di assistenza proattiva dal server
+      // 1. WebSocket
+  const { techStatus, sendWsMessage } = useDmsWebSocket(sessionStatus, (response) => { // OnDistraction
       setAiFeedback(response.voice_text);
       setRouteSuggestion(response.maps_route);
-      setSafetyScore(prev => Math.max(0, prev - response.penalty)); // Penalità variabile per ogni distrazione rilevata
-      setDistractionCount(prev => prev + 1); // Incrementa il contatore di distrazioni
-      speakText(response.voice_text + " La zona di sosta più vicina è: " + response.maps_route.name + "a " + response.maps_route.distance_kilometers + " chilometri"); // Il sistema legge ad alta voce il feedback ricevuto + eventuale suggerimento di percorso
+      setSafetyScore(prev => Math.max(0, prev - response.penalty)); 
+      setDistractionCount(prev => prev + 1); 
+      speakText(response.voice_text + " La zona di sosta più vicina è: " + response.maps_route.name + "a " + response.maps_route.distance_kilometers + " chilometri"); 
   }, 
-  (bonusResponse) => {
+  (bonusResponse) => { //OnBonus
       setSafetyScore(prev => Math.min(100, prev + bonusResponse.points));
-      speakText("Ottima guida! Hai guadagnato " + bonusResponse.points + " punti! "); // Il sistema legge ad alta voce il bonus ricevuto
+      speakText("Ottima guida! Hai guadagnato " + bonusResponse.points + " punti! ");
   });
 
-       // 2. Geolocalizzazione per tracciare la posizione del veicolo durante il viaggio
+       // 2. Geolocalizzazione 
   const { currentLocationRef } = useGeolocation(sessionStatus);
 
-      // 3. MediaPipe per il monitoraggio in tempo reale del conducente
+      // 3. MediaPipe 
   const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
-      // Invia un messaggio al server per notificare l'allarme di sonnolenza
-    sendWsMessage({ 
+
+    sendWsMessage({  // onAlarm--> Invia un messaggio al server per avvisare della distrazione
         event: "DROWSINESS_DETECTED", 
         variable_x: timeClosed,
-        location: currentLocationRef.current, // Invia anche la posizione attuale del conducente
+        location: currentLocationRef.current, // posizione attuale conducente
       }); 
   });
-
 
 
   // --- 3. LOGICA DI BENVENUTO INIZIALE ---
@@ -72,7 +70,6 @@ export default function App() {
     }
   }, [sessionStatus]);
 
-  //FUNZIONI DI SUPPORTO(a toggleJourney)
 
   const toggleJourney = () => {
     if (sessionStatus === SESSION_STATUS.IDLE) {
@@ -84,16 +81,15 @@ export default function App() {
         setRouteSuggestion(null);
         setSessionStatus(SESSION_STATUS.ACTIVE);
         setUserStatus("In Viaggio");
-        speakText("Buon viaggio, guida con prudenza."); // Il sistema saluta il guidatore a voce
-
-        tripStartTimeRef.current = Date.now(); // Fa partire il timer
+        speakText("Buon viaggio, guida con prudenza.");
+        tripStartTimeRef.current = Date.now();  // Fa partire il timer
 
   } else if (sessionStatus === SESSION_STATUS.ACTIVE) {
-      // TERMINA IL VIAGGIO --> LOGICA A DOPPIO STATUS
+      // TERMINA IL VIAGGIO 
       setSessionStatus(SESSION_STATUS.FINISHED);
       playEndJourneyFeedback(safetyScore, distractionCount);
       setUserStatus("Viaggio Terminato");
-      // Calcola i secondi totali trascorsi dall'inizio
+      
       if (tripStartTimeRef.current) {
           const totalSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
           setTripDuration(totalSeconds);
@@ -104,7 +100,6 @@ export default function App() {
       setSafetyScore(100);
       setAiFeedback("Nessuna anomalia rilevata.");
       setRouteSuggestion(null);
-      // LOGICA A DOPPIO STATUS
       speakText("Premi il pulsante per il monitoraggio in tempo reale");
       setUserStatus("Pronto per la partenza");
   }
@@ -121,7 +116,7 @@ export default function App() {
         toggleJourney={toggleJourney} 
       />  
 
-      {/* DASHBOARD (visibile solo se in attesa o in viaggio) */}
+      {/* DASHBOARD */}
       {sessionStatus !== SESSION_STATUS.FINISHED && (
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <VideoMonitor 
@@ -140,7 +135,7 @@ export default function App() {
         </div>
       )}
 
-      {/* PANNELLO STATISTICHE FINALI (Appare solo a fine viaggio) */}
+      {/* PANNELLO STATISTICHE FINALI*/}
       {sessionStatus === SESSION_STATUS.FINISHED && (
         <SummaryScreen
           tripDuration={tripDuration}
@@ -151,4 +146,4 @@ export default function App() {
       )}
     </div>
   );
-}
+};
