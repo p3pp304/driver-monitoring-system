@@ -1,4 +1,4 @@
-# Driver Monitoring System (DMS) v2.0 - Edge Computing & V2N Architecture
+# Driver Monitoring System (DMS) - Edge Computing & V2N Architecture
 
 Questa repository contiene il prototipo software di un **Driver Monitoring System (DMS)** sviluppato come progetto di tesi in Ingegneria Informatica e dell'Automazione (Politecnico di Bari, A.A. 2025/2026). 
 
