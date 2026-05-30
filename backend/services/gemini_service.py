@@ -6,11 +6,12 @@ from google import genai
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 AI_COOLDOWN_SECONDS = 600 # 600 secondi= 10 MINUTI
-fallback_message = f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
+
 
 async def genera_assistenza_vocale(x, last_ai_response_time):
     now = datetime.now()
-
+    fallback_message = f"Ho rilevato una chiusura occhi di {x} secondi. Accosta subito in un'area sicura per riposare."
+    
     if last_ai_response_time:
         secondi_trascorsi = (now - last_ai_response_time).total_seconds()
         

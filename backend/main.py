@@ -2,9 +2,9 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 from datetime import datetime
-from backend.services.gemini_service import genera_assistenza_vocale
-from backend.services.maps_service import get_nearest_safe_zone
-from backend.services.scoring_service import calculate_smart_penalty
+from services.gemini_service import genera_assistenza_vocale
+from services.maps_service import get_nearest_safe_zone
+from services.scoring_service import calculate_smart_penalty
 
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI()                                                        
