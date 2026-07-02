@@ -2,6 +2,11 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 from datetime import datetime
+
+from dotenv import load_dotenv
+
+load_dotenv()  # Carica le variabili d'ambiente dal file .env
+
 from services.gemini_service import genera_assistenza_vocale
 from services.maps_service import get_nearest_safe_zone
 from services.scoring_service import calculate_smart_penalty
@@ -98,3 +103,10 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         bonus_task.cancel() # Chiudiamo il worker quando il veicolo si disconette
     
+
+# MOTORE DI AVVIO DEL SERVER
+if __name__ == "__main__":
+    import uvicorn
+    print("[SYSTEM] Avvio del server DMS in corso...")
+    # Questo comando mette il server in ascolto sulla porta 8000
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
