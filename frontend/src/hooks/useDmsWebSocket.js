@@ -13,7 +13,11 @@
             return;
         }
 
-        wsRef.current = new WebSocket('ws://localhost:8000/ws');
+        const wsUrl = import.meta.env.MODE === 'production' 
+            ? 'wss://https://dms-backend-6xfc.onrender.com/ws' 
+            : 'ws://localhost:8000/ws';
+
+        wsRef.current = new WebSocket(wsUrl);
         
         wsRef.current.onopen = () => {
             setTechStatus("Connesso al server");
