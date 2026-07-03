@@ -28,11 +28,54 @@ Il sistema è suddiviso in due macro-servizi isolati che comunicano in modo bidi
 Prima di procedere con l'installazione, assicurarsi di avere a disposizione:
 - **Docker** installato e configurato sulla macchina host.
 - Una **Webcam** funzionante e accessibile per l'acquisizione dei frame video.
-- Connessione a Internet attiva (per il download iniziale dei modelli MediaPipe e dI Docker).
+- Connessione a Internet attiva (per il download iniziale dei modelli MediaPipe e di Docker).
 
 ---
 
-## 🚀 Installazione e Avvio Rapido (Run)
+## 💻 Avvio in Ambiente Locale (Modalità Sviluppo)
+
+Per attività di debugging o per apportare modifiche rapide al codice sfruttando l'hot-reload senza utilizzare i container Docker, è possibile avviare i due macro-servizi nativamente sui rispettivi terminali.
+
+### Configurare le Variabili d'Ambiente Private
+Il backend necessita delle chiavi API per agganciarsi ai microservizi cloud esterni. Crea un file nominato **.env** all'interno della  cartella **backend/**:
+
+```env
+GEMINI_API_KEY=inserisci_qui_la_tua_api_key_di_gemini
+GEOAPIFY_API_KEY= inserisci_qui_la_tua_api_key_di_geoapify
+```
+
+### 1. Avvio del Backend (FastAPI)
+Aprire un terminale, posizionarsi all'interno della cartella `backend/` e inizializzare l'ambiente virtuale Python:
+
+```bash
+cd backend
+python -m venv venv
+```
+Su Windows:
+```bash
+venv\Scripts\activate # Attivazione ambiente virtuale (Windows)
+```
+Su macOS/Linux:
+```bash
+source venv/bin/activate # Attivazione ambiente virtuale (macOS/Linux)
+```
+Installare dipendenze e avviare il server:
+```bash
+pip install -r requirements.txt  # Installazione delle dipendenze
+python main.py
+```
+
+### 2. Avvio del Frontend (React)
+Aprire un terminale, posizionarsi all'interno della cartella `frontend/` e avviare server di sviluppo Vite:
+
+```bash
+cd frontend
+npm install
+
+npm run dev # Avvio del server di sviluppo Vite
+```
+
+## 🚀 Installazione e Avvio Rapido (Run) con Docker
 
 Grazie all'integrazione dei container, l'intera pipeline di rete, la compilazione dei moduli e la mappatura dei volumi di memoria persistenti vengono avviate in modo identico su qualsiasi macchina attraverso pochissimi comandi da terminale (PORTABILITY).
 
@@ -46,12 +89,7 @@ cd <NOME_DELLA_CARTELLA>
 
 
 ### 2. Configurare le Variabili d'Ambiente Private
-Il backend necessita delle chiavi API per agganciarsi ai microservizi cloud esterni. Crea un file nominato **.env** all'interno della  cartella **backend/**:
-
-```env
-GEMINI_API_KEY=inserisci_qui_la_tua_api_key_di_gemini
-GEOAPIFY_API_KEY= inserisci_qui_la_tua_api_key_di_geoapify
-```
+Il backend necessita delle chiavi API per agganciarsi ai microservizi cloud esterni. Crea file `.env` come spiegato nella sezione di avvio in locale.
 
 ### 3. Compilazione ed Esecuzione dell'Infrastruttura
 Dalla cartella principale del progetto, lanciare il comando esecutivo per forzare la build dei layer isolati e attivare i servizi in background:
