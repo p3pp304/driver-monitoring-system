@@ -14,7 +14,7 @@
         }
 
         const wsUrl = import.meta.env.MODE === 'production' 
-            ? 'wss://https://dms-backend-6xfc.onrender.com/ws' 
+            ? 'wss://dms-backend-6xfc.onrender.com/ws' 
             : 'ws://localhost:8000/ws';
 
         wsRef.current = new WebSocket(wsUrl);
