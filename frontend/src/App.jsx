@@ -51,7 +51,6 @@ export default function App() {
 
       // 3. MediaPipe 
   const { isSleeping, variableX } = useMediaPipe(videoRef, canvasRef, sessionStatus, (timeClosed) => {
-
     sendWsMessage({  // onAlarm--> Invia un messaggio al server per avvisare della distrazione
         event: "DROWSINESS_DETECTED", 
         variable_x: timeClosed,

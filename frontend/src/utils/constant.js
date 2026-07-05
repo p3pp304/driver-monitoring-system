@@ -13,6 +13,6 @@ export const GEOLOCATION_FALLBACK = {
 
 export const DMS_CONFIG = {
     EAR_THRESHOLD: 0.2,  //Soglia sotto la quale gli occhi sono considerati chiusi
-    X_SLEEP_THRESHOLD:  0.7, // tempo minimo di chiusura occhi dopo il quale SCATTA ALLARME
+    X_SLEEP_THRESHOLD:  0.5, // tempo minimo di chiusura occhi dopo il quale SCATTA ALLARME
     ALARM_DEBOUNCE: 2000
 };
