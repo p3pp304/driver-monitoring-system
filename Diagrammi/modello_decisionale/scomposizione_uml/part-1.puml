@@ -1,0 +1,42 @@
+@startuml
+skinparam handwritten false
+skinparam DefaultFontName Arial
+skinparam ActivityBackgroundColor #LightCyan
+skinparam ActivityBorderColor #008B8B
+skinparam DiamondBackgroundColor #LightYellow
+skinparam DiamondBorderColor #Orange
+
+title Algoritmo Decisionale: 1. Flusso Principale e Livello Edge
+
+start
+
+:Acquisizione frame video da Webcam;
+:Estrazione dei 468 landmark facciali (MediaPipe Face Mesh);
+
+if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
+    :Incremento contatore temporale (Variabile x);
+    if (Variabile x >= 0.5 secondi?) then (yes)
+        
+        fork
+            partition "LIVELLO REATTIVO LOCALE (Edge-Side)" {
+                :Emissione segnale acustico immediato (Beep);
+                :Attivazione overlay visivo rosso semitrasparente;
+                note right
+                    Latenza: 300ms
+                    (Indipendente dalla connettività V2N)
+                end note
+            }
+        fork again
+            :Innesco Livello Proattivo Cloud\n(Vedi Diagramma 2);
+        end fork
+        
+    else (no)
+        :Mantenimento dello stato di marcia normale;
+    endif
+
+else (no)
+    :Gestione Guida Sicura e Reset\n(Vedi Diagramma 3);
+endif
+
+stop
+@enduml

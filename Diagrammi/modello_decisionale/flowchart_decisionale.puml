@@ -15,7 +15,7 @@ start
 
 if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
     :Incremento contatore temporale (Variabile x);
-    if (Variabile x >= 0.7 secondi?) then (yes)
+    if (Variabile x >= 0.5 secondi?) then (yes)
         
         ' --- BIFORCAZIONE ATTIVAZIONE IBRIDA ---
         fork
@@ -23,7 +23,7 @@ if (EAR (Eye Aspect Ratio) < 0.2?) then (yes)
                 :Emissione segnale acustico immediato (Beep);
                 :Attivazione overlay visivo rosso semitrasparente;
                 note right
-                    Latenza: 0ms
+                    Latenza: 300ms
                     (Indipendente dalla connettività V2N)
                 end note
             }

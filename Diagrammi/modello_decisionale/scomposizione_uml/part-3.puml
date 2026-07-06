@@ -1,0 +1,31 @@
+@startuml
+skinparam handwritten false
+skinparam DefaultFontName Arial
+skinparam ActivityBackgroundColor #LightCyan
+skinparam ActivityBorderColor #008B8B
+skinparam DiamondBackgroundColor #LightYellow
+skinparam DiamondBorderColor #Orange
+
+title Algoritmo Decisionale: 3. Gestione Guida Sicura e Safety Bonus
+
+start
+:Condizione Rilevata:\nEAR (Eye Aspect Ratio) >= 0.2;
+
+if (Session Status == ACTIVE?) then (yes)
+    :Worker asincrono incrementa timer guida sicura;
+    
+    if (Tempo ininterrotto senza infrazioni >= 10 minuti?) then (yes)
+        :Erogazione automatica Safety Bonus (+5 punti);
+        :Reset timer di guida sicura;
+    else (no)
+        :Attesa raggiungimento soglia bonus;
+    endif
+    
+else (no)
+    :Sessione non attiva;
+endif
+
+:Reset della variabile x a 0;
+
+stop
+@enduml

@@ -33,9 +33,9 @@ end
 
 ' --- GESTIONE EMERGENZA (PARADIGMA EVENT-DRIVEN) ---
 == Reazione all'Emergenza e Assistenza Proattiva ==
-alt Variabile x > 0.7 secondi
-    ' Reazione a latenza zero
-    Client -> Driver: Feedback Visivo (Rosso) e Allarme Acustico (Beep)\n[Latenza: 0ms]
+alt Variabile x > 0.5 secondi
+    ' Reazione a latenza minima
+    Client -> Driver: Feedback Visivo (Rosso) e Allarme Acustico (Beep)\n[Latenza: 300ms]
     
     ' Invio Telemetria
     Client -> Server: INVIA PAYLOAD: {event: "DROWSINESS", x_val: 0.8, gps: {...}}

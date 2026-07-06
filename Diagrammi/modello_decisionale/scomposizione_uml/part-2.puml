@@ -1,0 +1,47 @@
+@startuml
+skinparam handwritten false
+skinparam DefaultFontName Arial
+skinparam ActivityBackgroundColor #LightCyan
+skinparam ActivityBorderColor #008B8B
+skinparam DiamondBackgroundColor #LightYellow
+skinparam DiamondBorderColor #Orange
+
+title Algoritmo Decisionale: 2. Livello Proattivo Cloud e Risoluzione
+
+start
+:Innesco da Livello Edge (Variabile x >= 0.5s);
+
+partition "LIVELLO PROATTIVO CENTRALIZZATO (Cloud Server)" {
+    :Invia Payload JSON con telemetria via WebSocket;
+    :Backend FastAPI riceve l'evento;
+    
+    partition "STRATEGIA DI FALLBACK (Graceful Degradation)" {
+        fork
+            if (API Gemini Raggiungibile?) then (yes)
+                :Generazione testo empatico (LLM);
+            else (no)
+                :Assegnazione messaggio vocale statico;
+            endif
+        fork again
+            if (API Geoapify Raggiungibile?) then (yes)
+                :Calcolo Safe Zone vicina;
+            else (no)
+                :Assegnazione coordinate di sosta standard;
+            endif
+        end fork
+    }
+    
+    :Calcolo penalità Safety Score\n(Verifica coefficiente recidività);
+    :Invio pacchetto di risoluzione al Client;
+}
+
+partition "FASE DI RITORNO AL CLIENT" {
+    :Aggiornamento Safety Score grafico;
+    :Riproduzione sintesi vocale dinamica (Web Speech API);
+    :Rendering della rotta di sosta sulla mappa;
+    
+    :Attivazione Cooldown locale\n(Throttling anti-spam: 2 secondi);
+}
+
+stop
+@enduml
