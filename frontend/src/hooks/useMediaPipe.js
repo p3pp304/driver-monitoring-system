@@ -18,8 +18,14 @@ export const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
     const closedStartTimeRef = useRef(null);
     const lastAlarmTimeRef = useRef(0);
 
+    // NUOVO: Ref per tracciare se il componente è montato
+    const isMounted = useRef(true); 
+
     // MEDIAPIPE (EDGE COMPUTING) 
     useEffect(() => {
+        // NUOVO: Imposta a true all'avvio dell'effetto
+        isMounted.current = true;
+
         // Se non siamo in viaggio o mancano i riferimenti, ferma tutto
         if (sessionStatus !== "active" || !videoRef.current || !canvasRef.current) {
             setVariableX(0);
@@ -30,11 +36,14 @@ export const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
         const canvasCtx = canvasRef.current.getContext('2d'); 
 
         const faceMesh = new FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });  
 
         faceMesh.onResults((results) => {
+            // NUOVO: Blocca l'esecuzione se il componente è stato smontato
+            if (!isMounted.current) return;
+
             canvasCtx.clearRect(0, 0, 1280, 720);
             if (results.image) canvasCtx.drawImage(results.image, 0, 0, 1280, 720);  // Disegna la webcam e i landmark (se presenti)
             
@@ -68,19 +77,29 @@ export const useMediaPipe = (videoRef, canvasRef, sessionStatus, onAlarm) => {
 
         // Avvio Webcam
         cameraRef.current = new Camera(videoRef.current, {
-            onFrame: async () => await faceMesh.send({ image: videoRef.current }),
+            onFrame: async () => {
+                // NUOVO: Invia il frame a FaceMesh SOLO se il componente è montato
+                if (isMounted.current && faceMesh) {
+                    await faceMesh.send({ image: videoRef.current });
+                }
+            },
             width: 1280, height: 720
         });
         cameraRef.current.start();
 
         // Pulizia allo spegnimento
         return () => {
+            // NUOVO: Abbassa la bandierina per disinnescare onFrame e onResults
+            isMounted.current = false;
+
             if (cameraRef.current){
                 cameraRef.current.stop();
             } 
-            faceMesh.close();
+            if (faceMesh) {
+                faceMesh.close();
+            }
         };
-    }, [sessionStatus, onAlarm]); 
+    }, [sessionStatus]); 
 
     return { isSleeping, variableX };
 };
